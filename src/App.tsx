@@ -11,7 +11,7 @@ export default function App() {
           <p className="text-slate-600">React + Vite + TypeScript + Tailwind is ready.</p>
           <div className="mt-4 flex gap-3">
             <a
-              className="inline-flex items-center rounded-md bg-sky-600 px-3 py-2 text-white hover:bg-sky-700"
+              className="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-white hover:bg-sky-700"
               href="https://vitejs.dev/"
               target="_blank"
               rel="noreferrer"
