@@ -1,4 +1,5 @@
-//This is the projects page, this page will show all the projects by project card component.
-//The projectCards will be listed as grid in porjectList component.
-//This page will have a search bar and a filter on the top of the page and a button to add new project.
-//This page will also have a pagination at the bottom of the page.
+// its a view file for Project page
+// we will import the necessary components
+// we will display the list of projects (via ProjectList.tsx)
+// display the ProjectCardPopup.tsx component to see the details of a project when clicked
+// it will be encaplsulated in the Layout component

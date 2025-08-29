@@ -1,3 +1,10 @@
+// this file is my dashboard page
+// I will import the necessary components
+// it will be encaplsulated in the Layout component
+// it will display the week of the calendar(Calendar.tsx focus on the week view)
+// it will display the task not done(TaskList.tsx on the short enddate first)
+// it will displaythe last projectCard.tsx the user worked on
+
 export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
