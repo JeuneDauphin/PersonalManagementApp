@@ -1,3 +1,4 @@
+// this page will use layout components to structure the app
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
