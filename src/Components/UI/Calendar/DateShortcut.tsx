@@ -1,10 +1,176 @@
-// this components is only showing the actual month and we should be able to click on the days
-// we should beable to change the month by clicking on the arrows
-// clicking on a day will change the current date in the calendar component
-// should highlight by a different color the days which have events
-// interface:
-// Props:
-// currentDate: Date object to indicate the current date.
-// onDateChange: Function to handle date changes when a day is clicked.
-// Example usage:
-// <DateShortcut currentDate={new Date()} onDateChange={handleDateChange} />
+// Mini calendar component for quick date navigation
+import React, { useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEvents } from '../../../utils/hooks/hooks';
+import {
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  addDays,
+  addMonths,
+  subMonths,
+  isSameMonth,
+  isSameDay,
+  format,
+} from 'date-fns';
+
+interface DateShortcutProps {
+  selectedDate: Date;
+  onDateSelect: (date: Date) => void;
+}
+
+const DateShortcut: React.FC<DateShortcutProps> = ({
+  selectedDate,
+  onDateSelect,
+}) => {
+  const [currentMonth, setCurrentMonth] = useState(selectedDate);
+  const { data: events } = useEvents();
+
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(monthStart);
+  const startDate = startOfWeek(monthStart);
+  const endDate = endOfWeek(monthEnd);
+
+  // Check if a date has events
+  const hasEvents = (date: Date) => {
+    return events.some(event => {
+      const eventDate = new Date(event.startDate);
+      return isSameDay(eventDate, date);
+    });
+  };
+
+  const goToPreviousMonth = () => {
+    setCurrentMonth(subMonths(currentMonth, 1));
+  };
+
+  const goToNextMonth = () => {
+    setCurrentMonth(addMonths(currentMonth, 1));
+  };
+
+  const goToToday = () => {
+    const today = new Date();
+    setCurrentMonth(today);
+    onDateSelect(today);
+  };
+
+  const renderDays = () => {
+    const days = [];
+    let day = startDate;
+
+    while (day <= endDate) {
+      const dayToRender = day;
+      const isCurrentMonth = isSameMonth(dayToRender, monthStart);
+      const isSelected = isSameDay(dayToRender, selectedDate);
+      const isToday = isSameDay(dayToRender, new Date());
+      const dayHasEvents = hasEvents(dayToRender);
+
+      days.push(
+        <button
+          key={dayToRender.toString()}
+          onClick={() => onDateSelect(dayToRender)}
+          className={`
+            relative w-8 h-8 text-small rounded-lg transition-colors
+            ${!isCurrentMonth
+              ? 'text-gray-600 hover:text-gray-400'
+              : isSelected
+                ? 'bg-blue-600 text-white'
+                : isToday
+                  ? 'bg-gray-700 text-white border border-gray-500'
+                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+            }
+          `}
+        >
+          {format(dayToRender, 'd')}
+          {dayHasEvents && isCurrentMonth && (
+            <div className={`
+              absolute bottom-0.5 left-1/2 transform -translate-x-1/2
+              w-1 h-1 rounded-full
+              ${isSelected ? 'bg-white' : 'bg-blue-400'}
+            `} />
+          )}
+        </button>
+      );
+
+      day = addDays(day, 1);
+    }
+
+    return days;
+  };
+
+  const renderWeeks = () => {
+    const days = renderDays();
+    const weeks = [];
+
+    for (let i = 0; i < days.length; i += 7) {
+      weeks.push(
+        <div key={i} className="grid grid-cols-7 gap-1">
+          {days.slice(i, i + 7)}
+        </div>
+      );
+    }
+
+    return weeks;
+  };
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-4">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={goToPreviousMonth}
+          className="p-1 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
+        >
+          <ChevronLeft size={16} />
+        </button>
+
+        <h3 className="text-body font-medium text-white">
+          {format(currentMonth, 'MMMM yyyy')}
+        </h3>
+
+        <button
+          onClick={goToNextMonth}
+          className="p-1 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      {/* Today button */}
+      <div className="mb-3">
+        <button
+          onClick={goToToday}
+          className="w-full px-3 py-1.5 text-small text-blue-400 hover:text-blue-300 hover:bg-gray-700 rounded transition-colors"
+        >
+          Today
+        </button>
+      </div>
+
+      {/* Day labels */}
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
+          <div key={index} className="w-8 h-8 flex items-center justify-center">
+            <span className="text-xs text-gray-400 font-medium">{day}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="space-y-1">
+        {renderWeeks()}
+      </div>
+
+      {/* Legend */}
+      <div className="mt-3 pt-3 border-t border-gray-700">
+        <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+            <span>Has events</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DateShortcut;
