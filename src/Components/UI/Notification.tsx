@@ -1,22 +1,105 @@
-// this component is a notification popup that appears at the bottom of the screen
-// it is used to inform the user of important information or actions that need to be taken
-// it is a controlled component that receives the notification message and a function to close the notification as props
-// it can appear when the app is closed and will disappear after a few seconds 
-// can redirect to a specific page when clicked
-// they can be about any of the other components (contacts, calendar, tasks, schools, projects) but specially to remind to finish or complete tasks
-// interface:
-// - the type of notification which will change the color of the notification (contacts, calendar, tasks, schools, projets)
-// - message: the notification message to display
-// - onClose: a function to close the notification
-// - isOpen: a boolean to control the visibility of the notification
-// - duration: time in milliseconds before the notification disappears (optional, default is 5000ms)
-// - link: a string to redirect to a specific page when clicked (optional)
-// Example usage:
-// <Notification
-//   message="You have a new contact request"
-//   onClose={handleClose}
-//   isOpen={isNotificationOpen}
-//   duration={3000}
-//   link="/contacts"
-// />
-// it can be used in any component where a notification is needed
+// Notification popup component
+import React, { useEffect } from 'react';
+import { X, Bell, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
+
+type NotificationType = 'info' | 'success' | 'warning' | 'error';
+
+interface NotificationProps {
+  type: NotificationType;
+  title: string;
+  message: string;
+  isOpen: boolean;
+  onClose: () => void;
+  duration?: number;
+  link?: string;
+  onClick?: () => void;
+}
+
+const Notification: React.FC<NotificationProps> = ({
+  type,
+  title,
+  message,
+  isOpen,
+  onClose,
+  duration = 5000,
+  link,
+  onClick,
+}) => {
+  useEffect(() => {
+    if (isOpen && duration > 0) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, duration);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, duration, onClose]);
+
+  if (!isOpen) return null;
+
+  const getIcon = () => {
+    switch (type) {
+      case 'success': return <CheckCircle size={20} />;
+      case 'error': return <AlertCircle size={20} />;
+      case 'warning': return <AlertTriangle size={20} />;
+      default: return <Info size={20} />;
+    }
+  };
+
+  const getColorClasses = () => {
+    switch (type) {
+      case 'success':
+        return 'bg-green-800 border-green-600 text-green-100';
+      case 'error':
+        return 'bg-red-800 border-red-600 text-red-100';
+      case 'warning':
+        return 'bg-yellow-800 border-yellow-600 text-yellow-100';
+      default:
+        return 'bg-blue-800 border-blue-600 text-blue-100';
+    }
+  };
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    } else if (link) {
+      window.location.href = link;
+    }
+  };
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50 max-w-sm w-full">
+      <div className={`
+        ${getColorClasses()}
+        border rounded-lg shadow-lg p-4
+        animate-in slide-in-from-bottom-2 duration-300
+        ${(onClick || link) ? 'cursor-pointer hover:opacity-90' : ''}
+      `}
+        onClick={handleClick}
+      >
+        <div className="flex items-start">
+          <div className="flex-shrink-0">
+            {getIcon()}
+          </div>
+
+          <div className="ml-3 flex-1">
+            <h3 className="font-medium text-body">{title}</h3>
+            <p className="text-small mt-1 opacity-90">{message}</p>
+          </div>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="flex-shrink-0 ml-4 opacity-60 hover:opacity-100 transition-opacity"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Notification;
