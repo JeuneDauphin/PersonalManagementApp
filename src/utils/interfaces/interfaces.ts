@@ -1,0 +1,1 @@
+//this file is used to define all interfaces in the application
