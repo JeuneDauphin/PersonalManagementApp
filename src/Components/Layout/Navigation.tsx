@@ -62,8 +62,8 @@ const Navigation: React.FC<NavigationProps> = ({
       {/* Sidebar */}
       <div className={`
         fixed lg:static inset-y-0 left-0 z-50
-        ${collapsed ? 'w-16' : 'w-64'}
-        ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        ${collapsed ? 'w-24' : 'w-64'}
+        ${mobileOpen}
         bg-gray-900 border-r border-gray-800
         transition-all duration-300 ease-in-out
         flex flex-col
@@ -94,7 +94,7 @@ const Navigation: React.FC<NavigationProps> = ({
                 to={item.path}
                 onClick={() => setMobileOpen(false)}
                 className={`
-                  flex items-center px-3 py-2 rounded-lg text-body
+                  flex items-center ${collapsed ? 'justify-center' : ''} px-3 py-2 rounded-lg text-body
                   transition-colors duration-200
                   ${active
                     ? 'bg-blue-600 text-white'
@@ -117,7 +117,7 @@ const Navigation: React.FC<NavigationProps> = ({
           <div className="hidden lg:block p-4 border-t border-gray-800">
             <button
               onClick={onToggle}
-              className="w-full p-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+              className={`w-full p-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors flex items-center ${collapsed ? 'justify-center' : ''}`}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               <Menu size={20} />
