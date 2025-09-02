@@ -102,26 +102,26 @@ const TasksPage: React.FC = () => {
       filterOptions={filterOptions}
       onFilterChange={handleFilterChange}
     >
-      <div className="space-y-6">
+      <div className="h-full flex flex-col space-y-4">
         {/* Task Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-gray-800 rounded-lg p-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 flex-shrink-0">
+          <div className="bg-gray-800 rounded-lg p-3">
             <h3 className="text-small text-gray-400 mb-1">Total Tasks</h3>
             <p className="text-xl font-semibold text-white">{tasks.length}</p>
           </div>
-          <div className="bg-gray-800 rounded-lg p-4">
+          <div className="bg-gray-800 rounded-lg p-3">
             <h3 className="text-small text-gray-400 mb-1">Pending</h3>
             <p className="text-xl font-semibold text-yellow-400">
               {tasks.filter(t => t.status === 'pending').length}
             </p>
           </div>
-          <div className="bg-gray-800 rounded-lg p-4">
+          <div className="bg-gray-800 rounded-lg p-3">
             <h3 className="text-small text-gray-400 mb-1">In Progress</h3>
             <p className="text-xl font-semibold text-blue-400">
               {tasks.filter(t => t.status === 'in-progress').length}
             </p>
           </div>
-          <div className="bg-gray-800 rounded-lg p-4">
+          <div className="bg-gray-800 rounded-lg p-3">
             <h3 className="text-small text-gray-400 mb-1">Completed</h3>
             <p className="text-xl font-semibold text-green-400">
               {tasks.filter(t => t.status === 'completed').length}
@@ -130,15 +130,17 @@ const TasksPage: React.FC = () => {
         </div>
 
         {/* Tasks List */}
-        <TaskLists
-          tasks={filteredData}
-          isLoading={loading}
-          onTaskClick={handleTaskClick}
-          onTaskEdit={handleTaskEdit}
-          onTaskDelete={handleTaskDelete}
-          onTaskToggle={handleTaskToggle}
-          showActions={true}
-        />
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <TaskLists
+            tasks={filteredData}
+            isLoading={loading}
+            onTaskClick={handleTaskClick}
+            onTaskEdit={handleTaskEdit}
+            onTaskDelete={handleTaskDelete}
+            onTaskToggle={handleTaskToggle}
+            showActions={true}
+          />
+        </div>
       </div>
 
       {/* Task Popup */}

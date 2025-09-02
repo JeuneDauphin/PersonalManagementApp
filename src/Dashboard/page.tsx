@@ -34,59 +34,61 @@ const DashboardPage: React.FC = () => {
 
   return (
     <Layout title="Dashboard">
-      <div className="space-y-6">
+      <div className="h-full flex flex-col space-y-4">
         {/* Welcome Section */}
-        <div className="bg-gray-800 rounded-lg p-6">
-          <h2 className="text-h1 font-semibold text-white mb-2">
+        <div className="bg-gray-800 rounded-lg p-4 flex-shrink-0">
+          <h2 className="text-h1 font-semibold text-white mb-1">
             Welcome back! 👋
           </h2>
-          <p className="text-gray-300">
+          <p className="text-gray-300 text-sm">
             Here's what's happening with your tasks and projects today.
           </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-gray-800 rounded-lg p-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 flex-shrink-0">
+          <div className="bg-gray-800 rounded-lg p-4">
             <h3 className="text-small text-gray-400 mb-1">Total Tasks</h3>
             <p className="text-2xl font-semibold text-white">{tasks.length}</p>
           </div>
-          <div className="bg-gray-800 rounded-lg p-6">
+          <div className="bg-gray-800 rounded-lg p-4">
             <h3 className="text-small text-gray-400 mb-1">Pending Tasks</h3>
             <p className="text-2xl font-semibold text-yellow-400">{pendingTasks.length}</p>
           </div>
-          <div className="bg-gray-800 rounded-lg p-6">
+          <div className="bg-gray-800 rounded-lg p-4">
             <h3 className="text-small text-gray-400 mb-1">Active Projects</h3>
             <p className="text-2xl font-semibold text-blue-400">
               {projects.filter(p => p.status === 'active').length}
             </p>
           </div>
-          <div className="bg-gray-800 rounded-lg p-6">
+          <div className="bg-gray-800 rounded-lg p-4">
             <h3 className="text-small text-gray-400 mb-1">This Week Events</h3>
             <p className="text-2xl font-semibold text-green-400">{thisWeekEvents.length}</p>
           </div>
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0">
           {/* Calendar Section - Week View */}
-          <div className="lg:col-span-2">
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h3 className="text-large font-semibold text-white mb-4">This Week</h3>
-              <Calendar
-                events={thisWeekEvents}
-                currentDate={currentDate}
-                view="timeGridWeek"
-                editable={false}
-              />
+          <div className="lg:col-span-2 flex flex-col min-h-0">
+            <div className="bg-gray-800 rounded-lg p-4 flex-1 flex flex-col min-h-0">
+              <h3 className="text-large font-semibold text-white mb-3 flex-shrink-0">This Week</h3>
+              <div className="flex-1 min-h-0 h-64 lg:h-auto">
+                <Calendar
+                  events={thisWeekEvents}
+                  currentDate={currentDate}
+                  view="timeGridWeek"
+                  editable={false}
+                />
+              </div>
             </div>
           </div>
 
           {/* Right Sidebar */}
-          <div className="space-y-6">
+          <div className="flex flex-col space-y-4 min-h-0">
             {/* Pending Tasks */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <div className="flex items-center justify-between mb-4">
+            <div className="bg-gray-800 rounded-lg p-4 flex-1 min-h-0 flex flex-col">
+              <div className="flex items-center justify-between mb-3 flex-shrink-0">
                 <h3 className="text-large font-semibold text-white">Pending Tasks</h3>
                 <a
                   href="/tasks"
@@ -95,44 +97,46 @@ const DashboardPage: React.FC = () => {
                   View all
                 </a>
               </div>
-              {tasksLoading ? (
-                <div className="space-y-3">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-4 bg-gray-700 rounded mb-2"></div>
-                      <div className="h-3 bg-gray-700 rounded w-2/3"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : pendingTasks.length > 0 ? (
-                <div className="space-y-3">
-                  {pendingTasks.map((task) => (
-                    <div key={task._id} className="border border-gray-700 rounded-lg p-3">
-                      <p className="text-body text-white font-medium mb-1">{task.title}</p>
-                      <p className="text-small text-gray-400">
-                        Due: {new Date(task.dueDate).toLocaleDateString()}
-                      </p>
-                      <div className="flex items-center mt-2">
-                        <span className={`px-2 py-1 rounded text-xs ${task.priority === 'urgent' ? 'bg-red-600 text-white' :
+              <div className="flex-1 overflow-y-auto min-h-0">
+                {tasksLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="h-4 bg-gray-700 rounded mb-2"></div>
+                        <div className="h-3 bg-gray-700 rounded w-2/3"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : pendingTasks.length > 0 ? (
+                  <div className="space-y-2">
+                    {pendingTasks.map((task) => (
+                      <div key={task._id} className="border border-gray-700 rounded-lg p-3">
+                        <p className="text-body text-white font-medium mb-1">{task.title}</p>
+                        <p className="text-small text-gray-400">
+                          Due: {new Date(task.dueDate).toLocaleDateString()}
+                        </p>
+                        <div className="flex items-center mt-2">
+                          <span className={`px-2 py-1 rounded text-xs ${task.priority === 'urgent' ? 'bg-red-600 text-white' :
                             task.priority === 'high' ? 'bg-orange-600 text-white' :
                               task.priority === 'medium' ? 'bg-yellow-600 text-white' :
                                 'bg-green-600 text-white'
-                          }`}>
-                          {task.priority}
-                        </span>
+                            }`}>
+                            {task.priority}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-400 text-center py-4">No pending tasks</p>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-400 text-center py-4">No pending tasks</p>
+                )}
+              </div>
             </div>
 
             {/* Last Project */}
             {lastProject && (
-              <div className="bg-gray-800 rounded-lg p-6">
-                <div className="flex items-center justify-between mb-4">
+              <div className="bg-gray-800 rounded-lg p-4 flex-shrink-0">
+                <div className="flex items-center justify-between mb-3">
                   <h3 className="text-large font-semibold text-white">Current Project</h3>
                   <a
                     href="/projects"
@@ -141,10 +145,10 @@ const DashboardPage: React.FC = () => {
                     View all
                   </a>
                 </div>
-                <div className="border border-gray-700 rounded-lg p-4">
+                <div className="border border-gray-700 rounded-lg p-3">
                   <h4 className="text-body text-white font-medium mb-2">{lastProject.name}</h4>
-                  <p className="text-small text-gray-400 mb-3">{lastProject.description}</p>
-                  <div className="mb-3">
+                  <p className="text-small text-gray-400 mb-2">{lastProject.description}</p>
+                  <div className="mb-2">
                     <div className="flex items-center justify-between text-small text-gray-400 mb-1">
                       <span>Progress</span>
                       <span>{lastProject.progress}%</span>

@@ -63,10 +63,10 @@ const Navigation: React.FC<NavigationProps> = ({
       <div className={`
         fixed lg:static inset-y-0 left-0 z-50
         ${collapsed ? 'w-24' : 'w-64'}
-        ${mobileOpen}
+        ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         bg-gray-900 border-r border-gray-800
         transition-all duration-300 ease-in-out
-        flex flex-col
+        flex flex-col h-screen
       `}>
         {/* Logo/Header */}
         <div className="p-6 border-b border-gray-800">

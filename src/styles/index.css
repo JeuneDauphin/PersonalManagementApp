@@ -10,6 +10,7 @@
     background-color: #0D1116;
     color: white;
     font-family: 'Roboto', sans-serif;
+    overflow: hidden;
   }
 
   h1 {

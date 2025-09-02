@@ -56,9 +56,9 @@ const CalendarPage: React.FC = () => {
       onAddNew={handleAddNew}
       addButtonText="Add Event"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="h-full flex flex-col lg:flex-row gap-4">
         {/* Left Sidebar */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="lg:w-80 flex-shrink-0 flex flex-col space-y-4 overflow-hidden">
           {/* Date Shortcuts */}
           <DateShortcut
             selectedDate={selectedDate}
@@ -66,34 +66,38 @@ const CalendarPage: React.FC = () => {
           />
 
           {/* Events List for Selected Date */}
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h3 className="text-large font-semibold text-white mb-4">
+          <div className="bg-gray-800 rounded-lg p-4 flex-1 flex flex-col min-h-0">
+            <h3 className="text-large font-semibold text-white mb-3 flex-shrink-0">
               Events for {selectedDate.toLocaleDateString()}
             </h3>
-            <EventLists
-              events={selectedDateEvents}
-              isLoading={loading}
-              onEventClick={handleEventClick}
-              onEventEdit={(event: CalendarEvent) => {
-                setSelectedEvent(event);
-                setShowEventPopup(true);
-              }}
-              onEventDelete={handleEventDelete}
-            />
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <EventLists
+                events={selectedDateEvents}
+                isLoading={loading}
+                onEventClick={handleEventClick}
+                onEventEdit={(event: CalendarEvent) => {
+                  setSelectedEvent(event);
+                  setShowEventPopup(true);
+                }}
+                onEventDelete={handleEventDelete}
+              />
+            </div>
           </div>
         </div>
 
         {/* Main Calendar */}
-        <div className="lg:col-span-3">
-          <Calendar
-            events={events}
-            currentDate={selectedDate}
-            onEventClick={handleEventClick}
-            onDateClick={handleDateClick}
-            view={calendarView}
-            onViewChange={(view) => setCalendarView(view as any)}
-            editable={true}
-          />
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 min-h-0">
+            <Calendar
+              events={events}
+              currentDate={selectedDate}
+              onEventClick={handleEventClick}
+              onDateClick={handleDateClick}
+              view={calendarView}
+              onViewChange={(view) => setCalendarView(view as any)}
+              editable={true}
+            />
+          </div>
         </div>
       </div>
 

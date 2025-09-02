@@ -148,7 +148,7 @@ const Calendar: React.FC<CalendarProps> = ({
       </div>
 
       {/* Calendar */}
-      <div className="calendar-container">
+      <div className="calendar-container flex-1 min-h-0">
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -163,13 +163,15 @@ const Calendar: React.FC<CalendarProps> = ({
           eventClick={handleEventClick}
           dateClick={handleDateClick}
           eventDrop={handleEventDrop}
-          height="auto"
+          height={400}
           headerToolbar={false} // We're using our custom header
-          dayHeaderFormat={{ weekday: 'long' }}
+          dayHeaderFormat={{ weekday: 'short' }}
           slotMinTime="06:00:00"
-          slotMaxTime="24:00:00"
+          slotMaxTime="22:00:00"
           allDaySlot={true}
           nowIndicator={true}
+          slotDuration="01:00:00"
+          slotLabelInterval="02:00:00"
           // Styling
           eventDisplay="block"
           eventTextColor="#ffffff"
@@ -183,9 +185,29 @@ const Calendar: React.FC<CalendarProps> = ({
       </div>
 
       <style>{`
+        .calendar-container {
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          flex: 1;
+        }
+
         .fc {
           background: transparent;
           color: white;
+        }
+
+        .fc-view-harness {
+          height: 100% !important;
+        }
+
+        .fc-scroller {
+          overflow-y: auto !important;
+          height: 100% !important;
+        }
+
+        .fc-timegrid-body {
+          height: auto !important;
         }
 
         .fc-theme-standard .fc-scrollgrid {
@@ -198,6 +220,8 @@ const Calendar: React.FC<CalendarProps> = ({
 
         .fc-col-header-cell {
           background-color: #374151 !important;
+          padding: 4px !important;
+          font-size: 12px !important;
         }
 
         .fc-daygrid-day {
@@ -214,12 +238,21 @@ const Calendar: React.FC<CalendarProps> = ({
 
         .fc-event {
           border: none !important;
-          font-size: 12px;
+          font-size: 11px !important;
           margin: 1px;
+          padding: 1px 3px !important;
         }
 
         .fc-event-title {
           font-weight: 500;
+        }
+
+        .fc-timegrid-slot {
+          height: 40px !important;
+        }
+
+        .fc-timegrid-slot-label {
+          font-size: 11px !important;
         }
 
         .fc-button-primary {

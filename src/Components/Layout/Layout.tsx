@@ -33,7 +33,7 @@ const Layout: React.FC<LayoutProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-primary-bg flex">
+    <div className="h-screen bg-primary-bg flex overflow-hidden">
       {/* Sidebar */}
       <Navigation
         collapsed={sidebarCollapsed}
@@ -41,7 +41,7 @@ const Layout: React.FC<LayoutProps> = ({
       />
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarCollapsed}`}>
+      <div className={`flex-1 flex flex-col transition-all duration-300 min-w-0 ${sidebarCollapsed}`}>
         {/* Top Navigation */}
         <TopNavbar
           title={title}
@@ -55,7 +55,7 @@ const Layout: React.FC<LayoutProps> = ({
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-6 overflow-y-auto overflow-x-hidden min-h-0">
           {children}
         </main>
       </div>
