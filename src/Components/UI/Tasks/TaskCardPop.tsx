@@ -20,7 +20,7 @@
 // - the type of task (school, project, personal,...)
 // - the priority of the task (low, medium, high)
 // - the status of the task (to do, in progress, done)
-// - the related project or school (if any)
+// - the related project or school (if any)(optional)
 // - the related contact (if any)
 // - the related event (if any)
 // - the related notes (if any)

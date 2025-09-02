@@ -14,7 +14,7 @@
 // - contact company (if pro)
 // - contact job title (if pro)
 // - contact school (if school)
-// - contact major (if school)
+// - contact teacher subject (if school)
 // - contact personal notes (if personal)
 // - contact social media (linkedin, twitter, facebook,...)
 // - contact tags
