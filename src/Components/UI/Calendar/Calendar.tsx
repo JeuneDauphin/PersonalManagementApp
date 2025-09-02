@@ -2,6 +2,7 @@
 // the calendar has a time stamp and a list of events(EventCard component)
 // the calendar will display the current minutes, hours, days, month and year
 // should display as a grid layout
+// as we want to have a Google like calendar, if package exist use it, otherwise create our own calendar component
 
 // interface:
 // Props:
