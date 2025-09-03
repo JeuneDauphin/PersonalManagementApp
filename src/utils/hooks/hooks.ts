@@ -1,35 +1,17 @@
 // Custom hooks for data fetching and state management
 import { useState, useEffect } from 'react';
 import { apiService } from '../api/Api';
-import {
-  Task,
-  Project,
-  Contact,
-  Lesson,
-  Test,
-  CalendarEvent,
-  Notification
-} from '../interfaces/interfaces';
-import { mockTasks, mockEvents, mockProjects } from '../data/mockData';
 
 // Generic hook for data fetching
 export function useApi<T>(
   apiCall: () => Promise<T[]>,
-  dependencies: any[] = [],
-  mockData?: T[]
+  dependencies: any[] = []
 ) {
-  const [data, setData] = useState<T[]>(mockData || []);
-  const [loading, setLoading] = useState(false); // Start with mock data loaded
+  const [data, setData] = useState<T[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (mockData) {
-      // Use mock data immediately
-      setData(mockData);
-      setLoading(false);
-      return;
-    }
-
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -42,17 +24,10 @@ export function useApi<T>(
         setLoading(false);
       }
     };
-
     fetchData();
   }, dependencies);
 
   const refresh = async () => {
-    if (mockData) {
-      // For mock data, just reset to mock data
-      setData(mockData);
-      return;
-    }
-
     try {
       setLoading(true);
       const result = await apiCall();
@@ -70,11 +45,15 @@ export function useApi<T>(
 
 // Specific hooks for each entity
 export function useTasks() {
-  return useApi(() => apiService.getTasks(), [], mockTasks);
+  return useApi(() => apiService.getTasks(), []);
 }
 
 export function useProjects() {
-  return useApi(() => apiService.getProjects(), [], mockProjects);
+  return useApi(() => apiService.getProjects(), []);
+}
+
+export function useEvents() {
+  return useApi(() => apiService.getEvents(), []);
 }
 
 export function useContacts() {
@@ -87,10 +66,6 @@ export function useLessons() {
 
 export function useTests() {
   return useApi(() => apiService.getTests(), []);
-}
-
-export function useEvents() {
-  return useApi(() => apiService.getEvents(), [], mockEvents);
 }
 
 export function useNotifications() {
