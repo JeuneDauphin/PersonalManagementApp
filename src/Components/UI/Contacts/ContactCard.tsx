@@ -7,7 +7,7 @@ interface ContactCardProps {
     onClick: (contact: Contact) => void;
     isSelected?: boolean;
 }
-
+// A card component to display brief contact information
 const ContactCard: React.FC<ContactCardProps> = ({ contact, onClick, isSelected }) => {
     return (
         <div
