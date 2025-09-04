@@ -1,15 +1,47 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import dotenv from 'dotenv';
+
+// Load env from project root .env (one level up from /backend)
+dotenv.config({ path: '../.env' });
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/personal_management';
+// Build a MongoDB Atlas URI from separate parts if a full URI isn't provided
+const {
+  MONGODB_USERNAME,
+  MONGODB_PASSWORD,
+  MONGODB_CLUSTER_HOST,
+  MONGODB_DB_NAME,
+  MONGODB_OPTIONS,
+  APP_NAME,
+} = process.env;
+
+const buildAtlasUri = () => {
+  if (MONGODB_USERNAME && MONGODB_PASSWORD && MONGODB_CLUSTER_HOST) {
+    const user = encodeURIComponent(MONGODB_USERNAME);
+    const pass = encodeURIComponent(MONGODB_PASSWORD);
+    const host = MONGODB_CLUSTER_HOST; // e.g., cluster0.xxxxxx.mongodb.net
+    const db = MONGODB_DB_NAME ? `/${encodeURIComponent(MONGODB_DB_NAME)}` : '';
+    const params = MONGODB_OPTIONS || 'retryWrites=true&w=majority';
+    const app = encodeURIComponent(APP_NAME || 'PersonalManagementApp');
+    return `mongodb+srv://${user}:${pass}@${host}${db}?${params}&appName=${app}`;
+  }
+  return undefined;
+};
+
+// Support either MONGO_URI or MONGODB_URI or a derived Atlas URI; default to local if none provided
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || buildAtlasUri() || 'mongodb://localhost:27017/personal_management';
 const PORT = process.env.PORT || 3000;
 
-mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  dbName: process.env.MONGODB_DB_NAME || undefined,
+})
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
