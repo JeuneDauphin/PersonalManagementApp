@@ -1,9 +1,39 @@
-// this component is used to display a list of tests 
-// it will receive an array of test objects as props and map through them to render each TestCard component
-// the component will also handle loading states and empty states
-// interface:
-// - tests: array of test objects to be displayed
-// - isLoading: boolean to indicate if the data is still loading
-// - onTestClick: function to handle click events on individual test cards
-// Example usage:
-// <TestLists tests={tests} isLoading={isLoading} onTestClick={handleTestClick} />
+
+// TestList component
+// Displays a list of TestCard components
+// Controlled by props: tests, isLoading, onTestClick
+
+import React from 'react';
+import TestCard from './TestCard';
+
+interface Test {
+	title: string;
+	date: string;
+	time: string;
+	subjectType: string;
+	subjectColor: string;
+}
+
+interface TestListProps {
+	tests: Test[];
+	isLoading: boolean;
+	onTestClick: (test: Test) => void;
+}
+
+const TestList: React.FC<TestListProps> = ({ tests, isLoading, onTestClick }) => {
+	return (
+			<div className="test-list">
+				{isLoading ? (
+					<div>Loading...</div>
+				) : tests.length === 0 ? (
+					<div>No tests available.</div>
+				) : (
+					tests.map((test, idx) => (
+						<TestCard key={idx} test={test} onClick={() => onTestClick(test)} isSelected={false} />
+					))
+				)}
+			</div>
+	);
+};
+
+export default TestList;
