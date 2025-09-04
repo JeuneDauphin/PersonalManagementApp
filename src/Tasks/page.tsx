@@ -6,6 +6,7 @@ import TaskCardPopup from '../Components/UI/Tasks/TaskCardPop';
 import { useTasks } from '../utils/hooks/hooks';
 import { Task } from '../utils/interfaces/interfaces';
 import { useFilter } from '../utils/hooks/hooks';
+import { apiService } from '../utils/api/Api';
 
 const TasksPage: React.FC = () => {
   const { data: tasks, loading, refresh } = useTasks();
@@ -62,16 +63,23 @@ const TasksPage: React.FC = () => {
   };
 
   const handleTaskDelete = async (taskId: string) => {
-    // This would delete the task via API
-    console.log('Deleting task:', taskId);
-    refresh();
+    try {
+      await apiService.deleteTask(taskId);
+      refresh();
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+    }
   };
 
   const handleTaskToggle = async (task: Task) => {
-    // Toggle task completion status
-    const newStatus = task.status === 'completed' ? 'pending' : 'completed';
-    console.log('Toggling task status:', task._id, newStatus);
-    refresh();
+    try {
+      // Toggle task completion status
+      const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+      await apiService.updateTask(task._id, { status: newStatus });
+      refresh();
+    } catch (error) {
+      console.error('Failed to update task status:', error);
+    }
   };
 
   const handleAddNew = () => {
@@ -80,10 +88,21 @@ const TasksPage: React.FC = () => {
   };
 
   const handleTaskSave = async (task: Task) => {
-    // This would save the task via API
-    console.log('Saving task:', task);
-    setShowTaskPopup(false);
-    refresh();
+    try {
+      if (task._id.startsWith('temp-')) {
+        // Creating new task
+        const { _id, createdAt, updatedAt, ...taskData } = task;
+        await apiService.createTask(taskData);
+      } else {
+        // Updating existing task
+        const { _id, createdAt, updatedAt, ...taskData } = task;
+        await apiService.updateTask(task._id, taskData);
+      }
+      setShowTaskPopup(false);
+      refresh();
+    } catch (error) {
+      console.error('Failed to save task:', error);
+    }
   };
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
