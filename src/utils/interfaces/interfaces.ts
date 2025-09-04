@@ -25,12 +25,15 @@ export interface Project extends BaseEntity {
   description: string;
   status: ProjectStatus;
   startDate: Date;
-  endDate: Date;
+  endDate?: Date;
   priority: Priority;
   progress: number; // 0-100
-  tasks: string[]; // Task IDs
-  collaborators: string[]; // Contact IDs
+  tasks?: string[]; // Task IDs
+  collaborators?: string[]; // Contact IDs
   tags: string[];
+  githubLink?: string;
+  figmaLink?: string;
+  mailingList?: string;
 }
 
 export interface Contact extends BaseEntity {
