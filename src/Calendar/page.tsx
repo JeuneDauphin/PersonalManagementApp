@@ -7,6 +7,7 @@ import DateShortcut from '../Components/UI/Calendar/DateShortcut';
 import EventCardPopup from '../Components/UI/Calendar/EventCardPopup';
 import { useEvents } from '../utils/hooks/hooks';
 import { CalendarEvent } from '../utils/interfaces/interfaces';
+import { apiService } from '../utils/api/Api';
 
 const CalendarPage: React.FC = () => {
   const { data: events, loading, refresh } = useEvents();
@@ -38,16 +39,30 @@ const CalendarPage: React.FC = () => {
   };
 
   const handleEventSave = async (event: CalendarEvent) => {
-    // This would save the event via API
-    console.log('Saving event:', event);
-    setShowEventPopup(false);
-    refresh();
+    try {
+      if (event._id.startsWith('temp-')) {
+        // Creating new event
+        const { _id, createdAt, updatedAt, ...eventData } = event;
+        await apiService.createEvent(eventData);
+      } else {
+        // Updating existing event
+        const { _id, createdAt, updatedAt, ...eventData } = event;
+        await apiService.updateEvent(event._id, eventData);
+      }
+      setShowEventPopup(false);
+      refresh();
+    } catch (error) {
+      console.error('Failed to save event:', error);
+    }
   };
 
   const handleEventDelete = async (eventId: string) => {
-    // This would delete the event via API
-    console.log('Deleting event:', eventId);
-    refresh();
+    try {
+      await apiService.deleteEvent(eventId);
+      refresh();
+    } catch (error) {
+      console.error('Failed to delete event:', error);
+    }
   };
 
   return (
