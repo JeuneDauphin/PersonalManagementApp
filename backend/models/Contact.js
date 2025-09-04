@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 
 const { Schema } = mongoose;
 
-// Aligns with src/utils/interfaces/interfaces.ts Contact interface
 const socialLinksSchema = new Schema(
   {
     linkedin: { type: String, trim: true },
@@ -32,7 +31,6 @@ const contactSchema = new Schema(
   { timestamps: true, versionKey: false }
 );
 
-// Helpful index if emails are used to look up contacts often (not unique to allow multiple contacts sharing a generic email)
 contactSchema.index({ email: 1 });
 
 export default mongoose.model('Contact', contactSchema);
