@@ -15,7 +15,7 @@ const TasksPage: React.FC = () => {
 
   // Filter and search functionality
   const { filteredData, setSearchTerm: setFilterSearchTerm } = useFilter(
-    tasks,
+    tasks || [],
     (task: Task, search: string) =>
       task.title.toLowerCase().includes(search.toLowerCase()) ||
       task.description.toLowerCase().includes(search.toLowerCase()) ||
@@ -34,19 +34,19 @@ const TasksPage: React.FC = () => {
       key: 'status',
       label: 'Status',
       values: [
-        { value: 'pending', label: 'Pending', count: tasks.filter(t => t.status === 'pending').length },
-        { value: 'in-progress', label: 'In Progress', count: tasks.filter(t => t.status === 'in-progress').length },
-        { value: 'completed', label: 'Completed', count: tasks.filter(t => t.status === 'completed').length },
+        { value: 'pending', label: 'Pending', count: (tasks || []).filter(t => t.status === 'pending').length },
+        { value: 'in-progress', label: 'In Progress', count: (tasks || []).filter(t => t.status === 'in-progress').length },
+        { value: 'completed', label: 'Completed', count: (tasks || []).filter(t => t.status === 'completed').length },
       ],
     },
     {
       key: 'priority',
       label: 'Priority',
       values: [
-        { value: 'urgent', label: 'Urgent', count: tasks.filter(t => t.priority === 'urgent').length },
-        { value: 'high', label: 'High', count: tasks.filter(t => t.priority === 'high').length },
-        { value: 'medium', label: 'Medium', count: tasks.filter(t => t.priority === 'medium').length },
-        { value: 'low', label: 'Low', count: tasks.filter(t => t.priority === 'low').length },
+        { value: 'urgent', label: 'Urgent', count: (tasks || []).filter(t => t.priority === 'urgent').length },
+        { value: 'high', label: 'High', count: (tasks || []).filter(t => t.priority === 'high').length },
+        { value: 'medium', label: 'Medium', count: (tasks || []).filter(t => t.priority === 'medium').length },
+        { value: 'low', label: 'Low', count: (tasks || []).filter(t => t.priority === 'low').length },
       ],
     },
   ];
@@ -107,24 +107,24 @@ const TasksPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 flex-shrink-0">
           <div className="bg-gray-800 rounded-lg p-3">
             <h3 className="text-small text-gray-400 mb-1">Total Tasks</h3>
-            <p className="text-xl font-semibold text-white">{tasks.length}</p>
+            <p className="text-xl font-semibold text-white">{(tasks || []).length}</p>
           </div>
           <div className="bg-gray-800 rounded-lg p-3">
             <h3 className="text-small text-gray-400 mb-1">Pending</h3>
             <p className="text-xl font-semibold text-yellow-400">
-              {tasks.filter(t => t.status === 'pending').length}
+              {(tasks || []).filter(t => t.status === 'pending').length}
             </p>
           </div>
           <div className="bg-gray-800 rounded-lg p-3">
             <h3 className="text-small text-gray-400 mb-1">In Progress</h3>
             <p className="text-xl font-semibold text-blue-400">
-              {tasks.filter(t => t.status === 'in-progress').length}
+              {(tasks || []).filter(t => t.status === 'in-progress').length}
             </p>
           </div>
           <div className="bg-gray-800 rounded-lg p-3">
             <h3 className="text-small text-gray-400 mb-1">Completed</h3>
             <p className="text-xl font-semibold text-green-400">
-              {tasks.filter(t => t.status === 'completed').length}
+              {(tasks || []).filter(t => t.status === 'completed').length}
             </p>
           </div>
         </div>

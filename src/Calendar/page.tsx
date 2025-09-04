@@ -16,7 +16,7 @@ const CalendarPage: React.FC = () => {
   const [calendarView, setCalendarView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'>('dayGridMonth');
 
   // Filter events for selected date
-  const selectedDateEvents = events.filter(event => {
+  const selectedDateEvents = (events || []).filter(event => {
     const eventDate = new Date(event.startDate);
     const selected = new Date(selectedDate);
     return eventDate.toDateString() === selected.toDateString();
