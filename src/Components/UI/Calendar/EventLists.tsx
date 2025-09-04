@@ -70,7 +70,7 @@ const EventLists: React.FC<EventListsProps> = ({
     );
   }
 
-  if (events.length === 0) {
+  if ((events || []).length === 0) {
     return (
       <div className="text-center py-6">
         <Clock size={32} className="mx-auto text-gray-500 mb-2" />

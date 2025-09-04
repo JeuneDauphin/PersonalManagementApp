@@ -68,7 +68,7 @@ const TaskLists: React.FC<TaskListsProps> = ({
     );
   }
 
-  if (tasks.length === 0) {
+  if ((tasks || []).length === 0) {
     return (
       <div className="text-center py-12">
         <CheckSquare size={48} className="mx-auto text-gray-500 mb-4" />
@@ -80,7 +80,7 @@ const TaskLists: React.FC<TaskListsProps> = ({
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {tasks.map((task) => (
+      {(tasks || []).map((task) => (
         <div
           key={task._id}
           className={`

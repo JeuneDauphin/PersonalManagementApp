@@ -16,19 +16,19 @@ const DashboardPage: React.FC = () => {
   // Get this week's events for calendar
   const weekStart = startOfWeek(currentDate);
   const weekEnd = endOfWeek(currentDate);
-  const thisWeekEvents = events.filter(event => {
+  const thisWeekEvents = (events || []).filter(event => {
     const eventDate = new Date(event.startDate);
     return eventDate >= weekStart && eventDate <= weekEnd;
   });
 
   // Get pending tasks sorted by due date
-  const pendingTasks = tasks
+  const pendingTasks = (tasks || [])
     .filter(task => task.status !== 'completed')
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     .slice(0, 6); // Show only first 6 tasks
 
   // Get last worked on project
-  const lastProject = projects
+  const lastProject = (projects || [])
     .filter(project => project.status === 'active')
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
 
@@ -49,7 +49,7 @@ const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 flex-shrink-0">
           <div className="bg-gray-800 rounded-lg p-4">
             <h3 className="text-small text-gray-400 mb-1">Total Tasks</h3>
-            <p className="text-2xl font-semibold text-white">{tasks.length}</p>
+            <p className="text-2xl font-semibold text-white">{(tasks || []).length}</p>
           </div>
           <div className="bg-gray-800 rounded-lg p-4">
             <h3 className="text-small text-gray-400 mb-1">Pending Tasks</h3>
@@ -58,7 +58,7 @@ const DashboardPage: React.FC = () => {
           <div className="bg-gray-800 rounded-lg p-4">
             <h3 className="text-small text-gray-400 mb-1">Active Projects</h3>
             <p className="text-2xl font-semibold text-blue-400">
-              {projects.filter(p => p.status === 'active').length}
+              {(projects || []).filter(p => p.status === 'active').length}
             </p>
           </div>
           <div className="bg-gray-800 rounded-lg p-4">

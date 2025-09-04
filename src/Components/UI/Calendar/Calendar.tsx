@@ -66,7 +66,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
   // Helpers
   const normalizeDate = (d: Date | string) => typeof d === 'string' ? parseISO(d) : new Date(d);
-  const eventsNormalized = useMemo(() => events.map(e => ({
+  const eventsNormalized = useMemo(() => (events || []).map(e => ({
     ...e,
     startDate: normalizeDate(e.startDate),
     endDate: normalizeDate(e.endDate),
@@ -309,8 +309,8 @@ const TimeGridBody: React.FC<{ days: Date[]; events: (CalendarEvent & { color: s
         {/* Day columns */}
         {days.map((day) => {
           const dayKey = day.toDateString();
-          const allDay = events.filter(e => e.isAllDay && isSameDay(e.startDate, day));
-          const timed = layoutDayEvents(events.filter(e => isSameDay(e.startDate, day)), day);
+          const allDay = (events || []).filter(e => e.isAllDay && isSameDay(e.startDate, day));
+          const timed = layoutDayEvents((events || []).filter(e => isSameDay(e.startDate, day)), day);
           return (
             <div key={dayKey} className="relative border-r border-gray-700">
               {/* All-day lane */}

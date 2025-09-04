@@ -9,6 +9,14 @@ import {
   Notification
 } from '../interfaces/interfaces';
 
+// Paginated response interface
+interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
 class ApiService {
@@ -40,7 +48,8 @@ class ApiService {
 
   // Tasks API
   async getTasks(): Promise<Task[]> {
-    return this.request<Task[]>('/tasks');
+    const response = await this.request<PaginatedResponse<Task>>('/tasks');
+    return response.items || [];
   }
 
   async getTask(id: string): Promise<Task> {
@@ -69,7 +78,8 @@ class ApiService {
 
   // Projects API
   async getProjects(): Promise<Project[]> {
-    return this.request<Project[]>('/projects');
+    const response = await this.request<PaginatedResponse<Project>>('/projects');
+    return response.items || [];
   }
 
   async getProject(id: string): Promise<Project> {
@@ -98,7 +108,8 @@ class ApiService {
 
   // Contacts API
   async getContacts(): Promise<Contact[]> {
-    return this.request<Contact[]>('/contacts');
+    const response = await this.request<PaginatedResponse<Contact>>('/contacts');
+    return response.items || [];
   }
 
   async getContact(id: string): Promise<Contact> {
@@ -127,7 +138,8 @@ class ApiService {
 
   // Lessons API
   async getLessons(): Promise<Lesson[]> {
-    return this.request<Lesson[]>('/lessons');
+    const response = await this.request<PaginatedResponse<Lesson>>('/lessons');
+    return response.items || [];
   }
 
   async getLesson(id: string): Promise<Lesson> {
@@ -156,7 +168,8 @@ class ApiService {
 
   // Tests API
   async getTests(): Promise<Test[]> {
-    return this.request<Test[]>('/tests');
+    const response = await this.request<PaginatedResponse<Test>>('/tests');
+    return response.items || [];
   }
 
   async getTest(id: string): Promise<Test> {
@@ -185,7 +198,8 @@ class ApiService {
 
   // Calendar Events API
   async getEvents(): Promise<CalendarEvent[]> {
-    return this.request<CalendarEvent[]>('/events');
+    const response = await this.request<PaginatedResponse<CalendarEvent>>('/events');
+    return response.items || [];
   }
 
   async getEvent(id: string): Promise<CalendarEvent> {
@@ -214,7 +228,8 @@ class ApiService {
 
   // Notifications API
   async getNotifications(): Promise<Notification[]> {
-    return this.request<Notification[]>('/notifications');
+    const response = await this.request<PaginatedResponse<Notification>>('/notifications');
+    return response.items || [];
   }
 
   async markNotificationRead(id: string): Promise<void> {
