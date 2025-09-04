@@ -11,8 +11,10 @@ interface ContactCardPopUpProps {
 const ContactCardPopUp: React.FC<ContactCardPopUpProps> = ({ contact, isOpen, onClose }) => {
     if (!isOpen) return null;
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" onClick={onClose}>
-            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Blurry Backdrop */}
+            <div className="absolute inset-0 bg-black bg-opacity-10 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative z-10" onClick={e => e.stopPropagation()}>
                 <button className="absolute top-2 right-2 text-gray-500 hover:text-gray-700" onClick={onClose}>×</button>
                 <div className="mb-2 text-xs font-semibold px-2 py-1 rounded bg-gray-100 text-gray-700">{contact.type}</div>
                 <div className="font-bold text-xl mb-2">{contact.firstName} {contact.lastName}</div>

@@ -47,8 +47,10 @@ const PdfReader: React.FC<PdfReaderProps> = ({ file, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-            <div className="relative bg-white rounded-lg shadow-lg w-full max-w-3xl mx-4 flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Blurry Backdrop */}
+            <div className="absolute inset-0 bg-black bg-opacity-10 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="relative bg-white rounded-lg shadow-lg w-full max-w-3xl mx-4 flex flex-col z-10">
                 {/* Toolbar */}
                 <div className="flex items-center justify-between px-4 py-2 border-b">
                     <div className="flex gap-2">
