@@ -2,6 +2,10 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import getRoutes from './routes/get/get_routes.js';
+import postRoutes from './routes/post/post_routes.js';
+import deleteRoutes from './routes/delete/delete_routes.js';
+import patchRoutes from './routes/update/patch_routes.js';
 
 // Load env from project root .env (one level up from /backend)
 dotenv.config({ path: '../.env' });
@@ -89,16 +93,11 @@ const projectSchema = new mongoose.Schema({
 
 const Project = mongoose.model('Project', projectSchema);
 
-// Contact schema
-const contactSchema = new mongoose.Schema({
-  name: String,
-  email: String,
-  phone: String,
-  address: String,
-  notes: String,
-}, { timestamps: true });
-
-const Contact = mongoose.model('Contact', contactSchema);
+// Mount split routers under /api
+app.use('/api', getRoutes);
+app.use('/api', postRoutes);
+app.use('/api', deleteRoutes);
+app.use('/api', patchRoutes);
 
 // GET tasks
 app.get('/api/tasks', async (req, res) => {
@@ -181,32 +180,7 @@ app.delete('/api/projects/:id', async (req, res) => {
   res.json({ message: 'Project deleted' });
 });
 
-// GET contacts
-app.get('/api/contacts', async (req, res) => {
-  const contacts = await Contact.find();
-  res.json(contacts);
-});
-
-// POST contact
-app.post('/api/contacts', async (req, res) => {
-  const contact = new Contact(req.body);
-  await contact.save();
-  res.json(contact);
-});
-
-// UPDATE contact
-app.put('/api/contacts/:id', async (req, res) => {
-  const contact = await Contact.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  if (!contact) return res.status(404).json({ error: 'Contact not found' });
-  res.json(contact);
-});
-
-// DELETE contact
-app.delete('/api/contacts/:id', async (req, res) => {
-  const contact = await Contact.findByIdAndDelete(req.params.id);
-  if (!contact) return res.status(404).json({ error: 'Contact not found' });
-  res.json({ message: 'Contact deleted' });
-});
+// Contacts CRUD now handled in routes/contacts.js
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
