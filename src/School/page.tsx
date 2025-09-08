@@ -7,7 +7,7 @@ import LessonCardPopup from '../Components/UI/School/LessonCardPopup';
 import TestCardPopup from '../Components/UI/School/TestCardPopup';
 import { useLessons, useTests } from '../utils/hooks/hooks';
 import { Lesson, Test } from '../utils/interfaces/interfaces';
-import { useFilter } from '../utils/hooks/hooks';
+import { useAdvancedFilter } from '../utils/hooks/hooks';
 import { apiService } from '../utils/api/Api';
 import { BookOpen, FileText } from 'lucide-react';
 
@@ -20,32 +20,81 @@ const SchoolPage: React.FC = () => {
   const [selectedTest, setSelectedTest] = useState<Test | null>(null);
   const [showLessonPopup, setShowLessonPopup] = useState(false);
   const [showTestPopup, setShowTestPopup] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter and search functionality for lessons
-  const { filteredData: filteredLessons, setSearchTerm: setLessonSearchTerm } = useFilter(
+  // Advanced filter and search functionality for lessons
+  const {
+    filteredData: filteredLessons,
+    searchTerm: lessonSearchTerm,
+    setSearchTerm: setLessonSearchTerm,
+    setFilters: setLessonFilters
+  } = useAdvancedFilter(
     lessons || [],
+    // Search function
     (lesson: Lesson, search: string) =>
       lesson.title.toLowerCase().includes(search.toLowerCase()) ||
       lesson.subject.toLowerCase().includes(search.toLowerCase()) ||
       (lesson.instructor || '').toLowerCase().includes(search.toLowerCase()) ||
-      (lesson.description || '').toLowerCase().includes(search.toLowerCase())
+      (lesson.description || '').toLowerCase().includes(search.toLowerCase()),
+    // Filter function
+    (lesson: Lesson, activeFilters: Record<string, string[]>) => {
+      for (const [filterKey, filterValues] of Object.entries(activeFilters)) {
+        if (filterValues.length === 0) continue;
+
+        switch (filterKey) {
+          case 'type':
+            if (!filterValues.includes(lesson.type)) return false;
+            break;
+          case 'status':
+            const isCompleted = lesson.completed;
+            if (filterValues.includes('completed') && !isCompleted) return false;
+            if (filterValues.includes('pending') && isCompleted) return false;
+            break;
+        }
+      }
+      return true;
+    }
   );
 
-  // Filter and search functionality for tests
-  const { filteredData: filteredTests, setSearchTerm: setTestSearchTerm } = useFilter(
+  // Advanced filter and search functionality for tests
+  const {
+    filteredData: filteredTests,
+    searchTerm: testSearchTerm,
+    setSearchTerm: setTestSearchTerm,
+    setFilters: setTestFilters
+  } = useAdvancedFilter(
     tests || [],
+    // Search function
     (test: Test, search: string) =>
       test.title.toLowerCase().includes(search.toLowerCase()) ||
       test.subject.toLowerCase().includes(search.toLowerCase()) ||
-      (test.notes || '').toLowerCase().includes(search.toLowerCase())
+      (test.notes || '').toLowerCase().includes(search.toLowerCase()),
+    // Filter function
+    (test: Test, activeFilters: Record<string, string[]>) => {
+      for (const [filterKey, filterValues] of Object.entries(activeFilters)) {
+        if (filterValues.length === 0) continue;
+
+        switch (filterKey) {
+          case 'type':
+            if (!filterValues.includes(test.type)) return false;
+            break;
+        }
+      }
+      return true;
+    }
   );
 
-  // Update search term in both states
+  // Update search term based on active tab
   const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    setLessonSearchTerm(value);
-    setTestSearchTerm(value);
+    if (activeTab === 'lessons') {
+      setLessonSearchTerm(value);
+    } else {
+      setTestSearchTerm(value);
+    }
+  };
+
+  // Get current search term based on active tab
+  const getCurrentSearchTerm = () => {
+    return activeTab === 'lessons' ? lessonSearchTerm : testSearchTerm;
   };
 
   // Filter options for lessons
@@ -183,7 +232,11 @@ const SchoolPage: React.FC = () => {
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     // Apply filters to the current list
-    console.log('Applying filters:', filters);
+    if (activeTab === 'lessons') {
+      setLessonFilters(filters);
+    } else {
+      setTestFilters(filters);
+    }
   };
 
   // Get upcoming tests (within 7 days)
@@ -213,7 +266,7 @@ const SchoolPage: React.FC = () => {
   return (
     <Layout
       title="School"
-      searchValue={searchTerm}
+      searchValue={activeTab === 'lessons' ? lessonSearchTerm : testSearchTerm}
       onSearchChange={handleSearchChange}
       onAddNew={handleAddNew}
       addButtonText={activeTab === 'lessons' ? 'Add Lesson' : 'Add Test'}
@@ -247,8 +300,8 @@ const SchoolPage: React.FC = () => {
           <button
             onClick={() => setActiveTab('lessons')}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md transition-colors ${activeTab === 'lessons'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700'
+              ? 'bg-blue-600 text-white'
+              : 'text-gray-400 hover:text-white hover:bg-gray-700'
               }`}
           >
             <BookOpen size={16} />
@@ -257,8 +310,8 @@ const SchoolPage: React.FC = () => {
           <button
             onClick={() => setActiveTab('tests')}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md transition-colors ${activeTab === 'tests'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700'
+              ? 'bg-blue-600 text-white'
+              : 'text-gray-400 hover:text-white hover:bg-gray-700'
               }`}
           >
             <FileText size={16} />

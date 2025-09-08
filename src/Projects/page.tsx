@@ -5,28 +5,50 @@ import ProjectLists from '../Components/UI/Projects/ProjectLists';
 import ProjectCardPopup from '../Components/UI/Projects/ProjectCardPopup';
 import { useProjects } from '../utils/hooks/hooks';
 import { Project } from '../utils/interfaces/interfaces';
-import { useFilter } from '../utils/hooks/hooks';
+import { useAdvancedFilter } from '../utils/hooks/hooks';
 import { apiService } from '../utils/api/Api';
 
 const ProjectsPage: React.FC = () => {
   const { data: projects, loading, refresh } = useProjects();
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [showProjectPopup, setShowProjectPopup] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter and search functionality
-  const { filteredData, setSearchTerm: setFilterSearchTerm } = useFilter(
+  // Advanced filter and search functionality
+  const {
+    filteredData,
+    searchTerm,
+    setSearchTerm,
+    setFilters
+  } = useAdvancedFilter(
     projects || [],
+    // Search function
     (project: Project, search: string) =>
       project.name.toLowerCase().includes(search.toLowerCase()) ||
       project.description.toLowerCase().includes(search.toLowerCase()) ||
-      project.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase()))
+      project.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase())),
+    // Filter function
+    (project: Project, activeFilters: Record<string, string[]>) => {
+      // Check if project matches all active filters
+      for (const [filterKey, filterValues] of Object.entries(activeFilters)) {
+        if (filterValues.length === 0) continue;
+
+        switch (filterKey) {
+          case 'status':
+            if (!filterValues.includes(project.status)) return false;
+            break;
+          case 'priority':
+            if (!filterValues.includes(project.priority)) return false;
+            break;
+          // Add more filter cases as needed
+        }
+      }
+      return true;
+    }
   );
 
-  // Update search term in both states
+  // Update search term
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    setFilterSearchTerm(value);
   };
 
   // Filter options for the filter component
@@ -98,7 +120,7 @@ const ProjectsPage: React.FC = () => {
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     // Apply filters to the project list
-    console.log('Applying filters:', filters);
+    setFilters(filters);
   };
 
   return (

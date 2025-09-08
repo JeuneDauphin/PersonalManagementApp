@@ -5,31 +5,51 @@ import ContactList from '../Components/UI/Contacts/ContactList';
 import ContactCardPopUp from '../Components/UI/Contacts/ContactCardPopUp';
 import { useContacts } from '../utils/hooks/hooks';
 import { Contact } from '../utils/interfaces/interfaces';
-import { useFilter } from '../utils/hooks/hooks';
+import { useAdvancedFilter } from '../utils/hooks/hooks';
 import { apiService } from '../utils/api/Api';
 
 const ContactsPage: React.FC = () => {
   const { data: contacts, loading, refresh } = useContacts();
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [showContactPopup, setShowContactPopup] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter and search functionality
-  const { filteredData, setSearchTerm: setFilterSearchTerm } = useFilter(
+  // Advanced filter and search functionality
+  const {
+    filteredData,
+    searchTerm,
+    setSearchTerm,
+    filters,
+    setFilters
+  } = useAdvancedFilter(
     contacts || [],
+    // Search function
     (contact: Contact, search: string) =>
       contact.firstName.toLowerCase().includes(search.toLowerCase()) ||
       contact.lastName.toLowerCase().includes(search.toLowerCase()) ||
       (contact.email || '').toLowerCase().includes(search.toLowerCase()) ||
       (contact.company || '').toLowerCase().includes(search.toLowerCase()) ||
       (contact.position || '').toLowerCase().includes(search.toLowerCase()) ||
-      (contact.notes || '').toLowerCase().includes(search.toLowerCase())
+      (contact.notes || '').toLowerCase().includes(search.toLowerCase()),
+    // Filter function
+    (contact: Contact, activeFilters: Record<string, string[]>) => {
+      // Check if contact matches all active filters
+      for (const [filterKey, filterValues] of Object.entries(activeFilters)) {
+        if (filterValues.length === 0) continue;
+
+        switch (filterKey) {
+          case 'type':
+            if (!filterValues.includes(contact.type)) return false;
+            break;
+          // Add more filter cases as needed
+        }
+      }
+      return true;
+    }
   );
 
-  // Update search term in both states
+  // Update search term
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    setFilterSearchTerm(value);
   };
 
   // Filter options for the filter component
@@ -91,7 +111,7 @@ const ContactsPage: React.FC = () => {
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     // Apply filters to the contact list
-    console.log('Applying filters:', filters);
+    setFilters(filters);
   };
 
   // Get contacts with social links

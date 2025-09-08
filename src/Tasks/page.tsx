@@ -5,28 +5,50 @@ import TaskLists from '../Components/UI/Tasks/TaskLists';
 import TaskCardPopup from '../Components/UI/Tasks/TaskCardPop';
 import { useTasks } from '../utils/hooks/hooks';
 import { Task } from '../utils/interfaces/interfaces';
-import { useFilter } from '../utils/hooks/hooks';
+import { useAdvancedFilter } from '../utils/hooks/hooks';
 import { apiService } from '../utils/api/Api';
 
 const TasksPage: React.FC = () => {
   const { data: tasks, loading, refresh } = useTasks();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskPopup, setShowTaskPopup] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter and search functionality
-  const { filteredData, setSearchTerm: setFilterSearchTerm } = useFilter(
+  // Advanced filter and search functionality
+  const {
+    filteredData,
+    searchTerm,
+    setSearchTerm,
+    setFilters
+  } = useAdvancedFilter(
     tasks || [],
+    // Search function
     (task: Task, search: string) =>
       task.title.toLowerCase().includes(search.toLowerCase()) ||
       task.description.toLowerCase().includes(search.toLowerCase()) ||
-      task.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase()))
+      task.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase())),
+    // Filter function
+    (task: Task, activeFilters: Record<string, string[]>) => {
+      // Check if task matches all active filters
+      for (const [filterKey, filterValues] of Object.entries(activeFilters)) {
+        if (filterValues.length === 0) continue;
+
+        switch (filterKey) {
+          case 'status':
+            if (!filterValues.includes(task.status)) return false;
+            break;
+          case 'priority':
+            if (!filterValues.includes(task.priority)) return false;
+            break;
+          // Add more filter cases as needed
+        }
+      }
+      return true;
+    }
   );
 
-  // Update search term in both states
+  // Update search term
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    setFilterSearchTerm(value);
   };
 
   // Filter options for the filter component
@@ -107,7 +129,7 @@ const TasksPage: React.FC = () => {
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     // Apply filters to the task list
-    console.log('Applying filters:', filters);
+    setFilters(filters);
   };
 
   return (

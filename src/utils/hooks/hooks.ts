@@ -131,6 +131,51 @@ export function useFilter<T>(
   };
 }
 
+// Enhanced hook for filtering with advanced filters and search
+export function useAdvancedFilter<T>(
+  data: T[],
+  searchFn: (item: T, searchTerm: string) => boolean,
+  filterFn?: (item: T, filters: Record<string, string[]>) => boolean
+) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<Record<string, string[]>>({});
+  const [sortKey, setSortKey] = useState<keyof T | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const filteredData = data.filter(item => {
+    // Apply search filter
+    const matchesSearch = searchTerm === '' || searchFn(item, searchTerm);
+
+    // Apply advanced filters
+    const matchesFilters = !filterFn || Object.keys(filters).length === 0 || filterFn(item, filters);
+
+    return matchesSearch && matchesFilters;
+  });
+
+  const sortedData = sortKey
+    ? [...filteredData].sort((a, b) => {
+      const aVal = a[sortKey];
+      const bVal = b[sortKey];
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    })
+    : filteredData;
+
+  return {
+    filteredData: sortedData,
+    searchTerm,
+    setSearchTerm,
+    filters,
+    setFilters,
+    sortKey,
+    setSortKey,
+    sortDirection,
+    setSortDirection,
+  };
+}
+
 // Hook for pagination
 export function usePagination<T>(data: T[], itemsPerPage: number = 10) {
   const [currentPage, setCurrentPage] = useState(1);
