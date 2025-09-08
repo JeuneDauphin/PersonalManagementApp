@@ -16,8 +16,8 @@ interface CalendarProps {
   editable?: boolean; // currently unused; reserved for future drag/drop
 }
 
-const HOURS_START = 6; // 06:00
-const HOURS_END = 22; // 22:00
+const HOURS_START = 0;
+const HOURS_END = 23;
 
 function getEventColor(type: string): string {
   switch (type) {
@@ -299,8 +299,11 @@ const TimeGridBody: React.FC<{ days: Date[]; events: (CalendarEvent & { color: s
       >
         {/* Time labels */}
         <div className="border-r border-gray-700 relative">
-          {hours.map(h => (
-            <div key={h} className="relative h-12 md:h-9 text-[10px] md:text-xs text-gray-400">
+          {hours.map((h, idx) => (
+            <div
+              key={h}
+              className={`relative h-12 md:h-9 text-[10px] md:text-xs text-gray-400${idx === 0 ? ' mt-2' : ''}`}
+            >
               <div className="absolute -top-2 right-2">{format(setHours(setMinutes(new Date(), 0), h), 'HH:mm')}</div>
             </div>
           ))}
@@ -332,7 +335,7 @@ const TimeGridBody: React.FC<{ days: Date[]; events: (CalendarEvent & { color: s
               <div className="absolute inset-x-0 bottom-0 top-8">
                 {/* hour lines */}
                 {hours.map((h, idx) => (
-                  <div key={h} className={`border-b border-gray-700 ${idx === 0 ? '' : 'h-12 md:h-9'}`} />
+                  <div key={h} className={`border-b border-gray-700 ${idx === 0 ? 'mt-2' : 'h-12 md:h-9'}`} />
                 ))}
 
                 {/* now indicator */}
