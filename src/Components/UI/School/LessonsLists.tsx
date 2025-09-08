@@ -1,43 +1,71 @@
 
-// LessonsLists component
-// Displays a list of LessonCard components for a subject
-// Shows subject name as title, teacher contact link
-// Controlled by props: lessons, subject, teacher, onLessonClick, isLoading, onEditLesson, onDeleteLesson
-
-
+// Lessons list component displaying lessons in a grid layout
 import React from 'react';
-import LessonCard from './LessonCard';
 import { Lesson } from '../../../utils/interfaces/interfaces';
-
-interface TeacherContact {
-  name: string;
-  contactLink: string;
-}
+import { BookOpen } from 'lucide-react';
+import LessonCard from './LessonCard';
 
 interface LessonsListsProps {
   lessons: Lesson[];
-  subject: string;
-  teacher: TeacherContact;
-  onLessonClick: (lesson: Lesson) => void;
-  isLoading: boolean;
-  onEditLesson?: (lesson: Lesson) => void;
-  onDeleteLesson?: (lesson: Lesson) => void;
+  isLoading?: boolean;
+  onLessonClick?: (lesson: Lesson) => void;
+  onLessonEdit?: (lesson: Lesson) => void;
+  onLessonDelete?: (lessonId: string) => void;
+  onLessonToggle?: (lesson: Lesson) => void;
+  showActions?: boolean;
 }
 
-const LessonsLists: React.FC<LessonsListsProps> = ({ lessons, subject, teacher, onLessonClick, isLoading }) => {
-  return (
-    <div className="lessons-lists-box border border-gray-300 rounded-lg p-4 mb-8">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-bold">{subject}</h3>
-        <a href={teacher.contactLink} className="text-blue-500 underline">{teacher.name}</a>
+const LessonsLists: React.FC<LessonsListsProps> = ({
+  lessons,
+  isLoading = false,
+  onLessonClick,
+  onLessonEdit,
+  onLessonDelete,
+  onLessonToggle,
+  showActions = true,
+}) => {
+  if (isLoading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[...Array(6)].map((_, index) => (
+          <div key={index} className="bg-gray-800 rounded-lg p-4 animate-pulse">
+            <div className="h-1 bg-gray-700 rounded mb-3"></div>
+            <div className="h-4 bg-gray-700 rounded mb-3"></div>
+            <div className="h-3 bg-gray-700 rounded mb-2"></div>
+            <div className="h-3 bg-gray-700 rounded w-2/3 mb-3"></div>
+            <div className="flex justify-between">
+              <div className="h-3 bg-gray-700 rounded w-1/3"></div>
+              <div className="h-3 bg-gray-700 rounded w-1/4"></div>
+            </div>
+          </div>
+        ))}
       </div>
-      {isLoading ? (
-        <div>Loading...</div>
-      ) : (
-        (lessons || []).map((lesson, idx) => (
-          <LessonCard key={lesson._id || idx} lesson={lesson} onClick={() => onLessonClick(lesson)} isSelected={false} />
-        ))
-      )}
+    );
+  }
+
+  if ((lessons || []).length === 0) {
+    return (
+      <div className="text-center py-12">
+        <BookOpen size={48} className="mx-auto text-gray-500 mb-4" />
+        <h3 className="text-lg font-medium text-gray-300 mb-2">No lessons found</h3>
+        <p className="text-gray-500">Create your first lesson to get started.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {(lessons || []).map((lesson) => (
+        <LessonCard
+          key={lesson._id}
+          lesson={lesson}
+          onClick={onLessonClick}
+          onEdit={onLessonEdit}
+          onDelete={onLessonDelete}
+          onToggle={onLessonToggle}
+          showActions={showActions}
+        />
+      ))}
     </div>
   );
 };
