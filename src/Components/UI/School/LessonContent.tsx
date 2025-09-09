@@ -25,7 +25,7 @@ const LessonContent: React.FC<LessonContentProps> = ({ onClose, lesson }) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             {/* Blurry backdrop */}
-            <div className="absolute inset-0 bg-black bg-opacity-10 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose}></div>
             {/* Popup content */}
             <div className="lesson-content-popup relative bg-white rounded-lg shadow-xl p-8 overflow-auto max-w-2xl w-full z-10">
                 <button onClick={onClose} className="mb-4 px-4 py-2 bg-gray-200 rounded hover:bg-red-500 hover:text-white">Close</button>
