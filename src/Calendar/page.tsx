@@ -14,6 +14,7 @@ const CalendarPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventPopup, setShowEventPopup] = useState(false);
+  const [dayPopupDate, setDayPopupDate] = useState<Date | null>(null);
   const [calendarView, setCalendarView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'>('dayGridMonth');
 
   // Filter events for selected date
@@ -25,16 +26,21 @@ const CalendarPage: React.FC = () => {
 
   const handleEventClick = (event: CalendarEvent) => {
     setSelectedEvent(event);
+    setDayPopupDate(null);
     setShowEventPopup(true);
   };
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
+    setSelectedEvent(null);
+    setDayPopupDate(date);
+    setShowEventPopup(true);
   };
 
   const handleAddNew = () => {
     // Create new event
     setSelectedEvent(null);
+    setDayPopupDate(null);
     setShowEventPopup(true);
   };
 
@@ -121,9 +127,10 @@ const CalendarPage: React.FC = () => {
         <EventCardPopup
           event={selectedEvent}
           isOpen={showEventPopup}
-          onClose={() => setShowEventPopup(false)}
+          onClose={() => { setShowEventPopup(false); setDayPopupDate(null); }}
           onSave={handleEventSave}
           onDelete={selectedEvent ? () => handleEventDelete(selectedEvent._id) : undefined}
+          dayDate={dayPopupDate ?? undefined}
         />
       )}
     </Layout>

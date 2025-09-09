@@ -11,6 +11,8 @@ interface EventCardPopupProps {
   onClose: () => void;
   onSave?: (event: CalendarEvent) => void;
   onDelete?: () => void;
+  // When provided, opening the popup without an event will prefill a new event on this date
+  dayDate?: Date;
 }
 
 const EventCardPopup: React.FC<EventCardPopupProps> = ({
@@ -19,6 +21,7 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
   onClose,
   onSave,
   onDelete,
+  dayDate,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -47,6 +50,24 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
         reminders: event.reminders || [15],
       });
       setIsEditing(false);
+    } else if (dayDate) {
+      // Prefill a new event for the clicked day at current local time
+      const base = new Date(dayDate);
+      const now = new Date();
+      base.setHours(now.getHours(), now.getMinutes(), 0, 0);
+      const nextHour = new Date(base.getTime() + 60 * 60 * 1000);
+      setFormData({
+        title: '',
+        description: '',
+        startDate: base.toISOString().slice(0, 16),
+        endDate: nextHour.toISOString().slice(0, 16),
+        isAllDay: false,
+        type: 'meeting' as EventType,
+        location: '',
+        attendees: [],
+        reminders: [15],
+      });
+      setIsEditing(true);
     } else {
       // New event
       const now = new Date();
@@ -64,7 +85,7 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
       });
       setIsEditing(true);
     }
-  }, [event]);
+  }, [event, dayDate]);
 
   if (!isOpen) return null;
 
