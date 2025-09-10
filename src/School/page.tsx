@@ -10,10 +10,12 @@ import { Lesson, Test } from '../utils/interfaces/interfaces';
 import { useAdvancedFilter } from '../utils/hooks/hooks';
 import { apiService } from '../utils/api/Api';
 import { BookOpen, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const SchoolPage: React.FC = () => {
   const { data: lessons, loading: lessonsLoading, refresh: refreshLessons } = useLessons();
   const { data: tests, loading: testsLoading, refresh: refreshTests } = useTests();
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<'lessons' | 'tests'>('lessons');
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
@@ -92,10 +94,7 @@ const SchoolPage: React.FC = () => {
     }
   };
 
-  // Get current search term based on active tab
-  const getCurrentSearchTerm = () => {
-    return activeTab === 'lessons' ? lessonSearchTerm : testSearchTerm;
-  };
+  // Note: getCurrentSearchTerm helper removed (unused)
 
   // Filter options for lessons
   const lessonFilterOptions = [
@@ -137,8 +136,8 @@ const SchoolPage: React.FC = () => {
 
   // Lesson handlers
   const handleLessonClick = (lesson: Lesson) => {
-    setSelectedLesson(lesson);
-    setShowLessonPopup(true);
+    // Navigate to lesson detail page instead of opening a popup
+    navigate(`/school/${lesson._id}`);
   };
 
   const handleLessonEdit = (lesson: Lesson) => {
