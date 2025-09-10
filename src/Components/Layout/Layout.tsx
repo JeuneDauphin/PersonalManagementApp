@@ -41,7 +41,7 @@ const Layout: React.FC<LayoutProps> = ({
       />
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 min-w-0 ${sidebarCollapsed}`}>
+      <div className={`flex-1 flex flex-col transition-[margin,padding,width] duration-600 ease-[cubic-bezier(.22,1,.36,1)] min-w-0`}>
         {/* Top Navigation */}
         <TopNavbar
           title={title}
