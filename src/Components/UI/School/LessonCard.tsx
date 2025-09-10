@@ -66,10 +66,10 @@ const LessonCard: React.FC<LessonCardProps> = ({
   };
 
   return (
-    <div
+  <div
       className={`
         bg-gray-800 border border-gray-700 rounded-lg p-4
-        hover:border-gray-600 transition-colors cursor-pointer group
+    hover:border-gray-600 transition-colors cursor-pointer group relative
         ${lesson.completed ? 'opacity-75' : ''}
         ${isSelected ? 'border-blue-500' : ''}
       `}
@@ -87,20 +87,7 @@ const LessonCard: React.FC<LessonCardProps> = ({
           </span>
         </div>
 
-        {showActions && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggle?.(lesson);
-              }}
-              className="p-1 text-gray-400 hover:text-white rounded transition-colors"
-              title={lesson.completed ? 'Mark as pending' : 'Mark as completed'}
-            >
-              <CheckCircle size={14} />
-            </button>
-          </div>
-        )}
+  {/* actions moved to bottom-right */}
       </div>
 
       {/* Subject and Type */}
@@ -179,29 +166,37 @@ const LessonCard: React.FC<LessonCardProps> = ({
 
       {/* Footer */}
       {showActions && (
-        <div className="flex items-center justify-end pt-3 border-t border-gray-700">
-          <div className="flex items-center gap-1">
-            <Button
-              action="edit"
-              onClick={(e) => {
-                e?.stopPropagation();
-                onEdit?.(lesson);
-              }}
-              variant="ghost"
-              size="sm"
-              text=""
-            />
-            <Button
-              action="delete"
-              onClick={(e) => {
-                e?.stopPropagation();
-                onDelete?.(lesson._id);
-              }}
-              variant="ghost"
-              size="sm"
-              text=""
-            />
-          </div>
+        <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle?.(lesson);
+            }}
+            className="p-1 text-gray-400 hover:text-white rounded transition-colors"
+            title={lesson.completed ? 'Mark as pending' : 'Mark as completed'}
+          >
+            <CheckCircle size={14} />
+          </button>
+          <Button
+            action="edit"
+            onClick={(e) => {
+              e?.stopPropagation();
+              onEdit?.(lesson);
+            }}
+            variant="ghost"
+            size="sm"
+            text=""
+          />
+          <Button
+            action="delete"
+            onClick={(e) => {
+              e?.stopPropagation();
+              onDelete?.(lesson._id);
+            }}
+            variant="ghost"
+            size="sm"
+            text=""
+          />
         </div>
       )}
     </div>

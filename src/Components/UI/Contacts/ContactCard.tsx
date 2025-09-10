@@ -50,10 +50,10 @@ const ContactCard: React.FC<ContactCardProps> = ({
   };
 
   return (
-    <div
+  <div
       className={`
-        bg-gray-800 border border-gray-700 rounded-lg p-4
-        hover:border-gray-600 transition-colors cursor-pointer group
+    bg-gray-800 border border-gray-700 rounded-lg p-4
+    hover:border-gray-600 transition-colors cursor-pointer group relative
         ${isSelected ? 'border-blue-500' : ''}
       `}
       onClick={() => onClick?.(contact)}
@@ -80,30 +80,7 @@ const ContactCard: React.FC<ContactCardProps> = ({
           </div>
         </div>
 
-        {showActions && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              action="edit"
-              onClick={(e) => {
-                e?.stopPropagation();
-                onEdit?.(contact);
-              }}
-              variant="ghost"
-              size="sm"
-              text=""
-            />
-            <Button
-              action="delete"
-              onClick={(e) => {
-                e?.stopPropagation();
-                onDelete?.(contact._id);
-              }}
-              variant="ghost"
-              size="sm"
-              text=""
-            />
-          </div>
-        )}
+  {/* actions moved to bottom-right */}
       </div>
 
       {/* Contact Information */}
@@ -203,6 +180,31 @@ const ContactCard: React.FC<ContactCardProps> = ({
           </div>
         )}
       </div>
+
+      {showActions && (
+        <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            action="edit"
+            onClick={(e) => {
+              e?.stopPropagation();
+              onEdit?.(contact);
+            }}
+            variant="ghost"
+            size="sm"
+            text=""
+          />
+          <Button
+            action="delete"
+            onClick={(e) => {
+              e?.stopPropagation();
+              onDelete?.(contact._id);
+            }}
+            variant="ghost"
+            size="sm"
+            text=""
+          />
+        </div>
+      )}
     </div>
   );
 };
