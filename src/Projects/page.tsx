@@ -7,9 +7,11 @@ import { useProjects } from '../utils/hooks/hooks';
 import { Project } from '../utils/interfaces/interfaces';
 import { useAdvancedFilter } from '../utils/hooks/hooks';
 import { apiService } from '../utils/api/Api';
+import { useNavigate } from 'react-router-dom';
 
 const ProjectsPage: React.FC = () => {
   const { data: projects, loading, refresh } = useProjects();
+  const navigate = useNavigate();
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [showProjectPopup, setShowProjectPopup] = useState(false);
 
@@ -77,13 +79,12 @@ const ProjectsPage: React.FC = () => {
   ];
 
   const handleProjectClick = (project: Project) => {
-    setSelectedProject(project);
-    setShowProjectPopup(true);
+    // Navigate to detail page instead of opening a popup
+    navigate(`/projects/${project._id}`);
   };
 
   const handleProjectEdit = (project: Project) => {
-    setSelectedProject(project);
-    setShowProjectPopup(true);
+    navigate(`/projects/${project._id}`);
   };
 
   const handleProjectDelete = async (projectId: string) => {
@@ -97,7 +98,7 @@ const ProjectsPage: React.FC = () => {
 
   const handleAddNew = () => {
     setSelectedProject(null);
-    setShowProjectPopup(true);
+    setShowProjectPopup(true); // Keep popup for creating a new one (no detail page for new)
   };
 
   const handleProjectSave = async (project: Project) => {
