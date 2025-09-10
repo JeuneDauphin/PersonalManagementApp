@@ -4,7 +4,8 @@ import { Bell, Settings, User } from 'lucide-react';
 import Searchbar from '../UI/Searchbar';
 import Filter from '../UI/Filter';
 import Button from '../UI/Button';
-import Notification from '../UI/Notification';
+//TODO: Add notifications back
+// import Notification from '../UI/Notification';
 
 interface TopNavbarProps {
   title: string;

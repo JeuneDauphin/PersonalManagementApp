@@ -18,7 +18,8 @@ const ContactsPage: React.FC = () => {
     filteredData,
     searchTerm,
     setSearchTerm,
-    filters,
+    //TODO: add back
+    // filters,
     setFilters
   } = useAdvancedFilter(
     contacts || [],
