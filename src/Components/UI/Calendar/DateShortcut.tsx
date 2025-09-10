@@ -1,12 +1,10 @@
 // Mini calendar component for quick date navigation
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEvents } from '../../../utils/hooks/hooks';
 import {
   startOfMonth,
-  endOfMonth,
   startOfWeek,
-  endOfWeek,
   addDays,
   addMonths,
   subMonths,
@@ -28,9 +26,20 @@ const DateShortcut: React.FC<DateShortcutProps> = ({
   const { data: events } = useEvents();
 
   const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(monthStart);
-  const startDate = startOfWeek(monthStart);
-  const endDate = endOfWeek(monthEnd);
+  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
+  // Always show 6 rows (6 weeks = 42 days)
+  const endDate = addDays(startDate, 41);
+
+  // Keep the mini calendar in sync with the externally selected date
+  useEffect(() => {
+    // If selectedDate moves to another month/year, update the visible month
+    if (
+      selectedDate.getMonth() !== currentMonth.getMonth() ||
+      selectedDate.getFullYear() !== currentMonth.getFullYear()
+    ) {
+      setCurrentMonth(selectedDate);
+    }
+  }, [selectedDate]);
 
   // Check if a date has events
   const hasEvents = (date: Date) => {
@@ -68,7 +77,13 @@ const DateShortcut: React.FC<DateShortcutProps> = ({
       days.push(
         <button
           key={dayToRender.toString()}
-          onClick={() => onDateSelect(dayToRender)}
+          onClick={() => {
+            onDateSelect(dayToRender);
+            // If clicking a day outside the current month, move the mini calendar to that month immediately
+            if (!isSameMonth(dayToRender, currentMonth)) {
+              setCurrentMonth(dayToRender);
+            }
+          }}
           className={`
             relative w-8 h-8 text-small rounded-lg transition-colors
             ${!isCurrentMonth
@@ -148,7 +163,7 @@ const DateShortcut: React.FC<DateShortcutProps> = ({
 
       {/* Day labels */}
       <div className="grid grid-cols-7 gap-1 mb-2">
-        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
+        {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
           <div key={index} className="w-8 h-8 flex items-center justify-center">
             <span className="text-xs text-gray-400 font-medium">{day}</span>
           </div>

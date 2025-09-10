@@ -14,6 +14,7 @@ interface CalendarProps {
   view?: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay';
   onViewChange?: (view: string) => void;
   editable?: boolean; // currently unused; reserved for future drag/drop
+  onVisibleDateChange?: (date: Date) => void; // notify parent when user navigates
 }
 
 const HOURS_START = 0;
@@ -39,6 +40,7 @@ const Calendar: React.FC<CalendarProps> = ({
   view = 'dayGridMonth',
   onViewChange,
   editable: _editable = true,
+  onVisibleDateChange,
 }) => {
   const [visibleDate, setVisibleDate] = useState<Date>(currentDate);
   const [activeView, setActiveView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'>(view);
@@ -52,12 +54,24 @@ const Calendar: React.FC<CalendarProps> = ({
     setActiveView(view);
   }, [view]);
 
-  const goToToday = () => setVisibleDate(new Date());
+  const goToToday = () => {
+    const d = new Date();
+    setVisibleDate(d);
+    onVisibleDateChange?.(d);
+  };
   const goToPrevious = () => {
-    setVisibleDate(prev => activeView === 'dayGridMonth' ? addMonths(prev, -1) : activeView === 'timeGridWeek' ? addWeeks(prev, -1) : addDays(prev, -1));
+    setVisibleDate(prev => {
+      const next = activeView === 'dayGridMonth' ? addMonths(prev, -1) : activeView === 'timeGridWeek' ? addWeeks(prev, -1) : addDays(prev, -1);
+      onVisibleDateChange?.(next);
+      return next;
+    });
   };
   const goToNext = () => {
-    setVisibleDate(prev => activeView === 'dayGridMonth' ? addMonths(prev, 1) : activeView === 'timeGridWeek' ? addWeeks(prev, 1) : addDays(prev, 1));
+    setVisibleDate(prev => {
+      const next = activeView === 'dayGridMonth' ? addMonths(prev, 1) : activeView === 'timeGridWeek' ? addWeeks(prev, 1) : addDays(prev, 1);
+      onVisibleDateChange?.(next);
+      return next;
+    });
   };
   const changeView = (newView: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay') => {
     setActiveView(newView);
