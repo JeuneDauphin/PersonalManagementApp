@@ -85,7 +85,7 @@ const DateShortcut: React.FC<DateShortcutProps> = ({
             }
           }}
           className={`
-            relative w-8 h-8 text-small rounded-lg transition-colors
+            relative w-8 h-8 text-small rounded-lg transition-colors cursor-pointer
             ${!isCurrentMonth
               ? 'text-gray-600 hover:text-gray-400'
               : isSelected
@@ -134,18 +134,18 @@ const DateShortcut: React.FC<DateShortcutProps> = ({
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={goToPreviousMonth}
-          className="p-1 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
+          className="p-1 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors cursor-pointer"
         >
           <ChevronLeft size={16} />
         </button>
 
-        <h3 className="text-body font-medium text-white">
+        <h3 className="text-body font-medium text-white select-none cursor-default">
           {format(currentMonth, 'MMMM yyyy')}
         </h3>
 
         <button
           onClick={goToNextMonth}
-          className="p-1 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors"
+          className="p-1 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors cursor-pointer"
         >
           <ChevronRight size={16} />
         </button>
@@ -155,14 +155,14 @@ const DateShortcut: React.FC<DateShortcutProps> = ({
       <div className="mb-3">
         <button
           onClick={goToToday}
-          className="w-full px-3 py-1.5 text-small text-blue-400 hover:text-blue-300 hover:bg-gray-700 rounded transition-colors"
+          className="w-full px-3 py-1.5 text-small text-blue-400 hover:text-blue-300 hover:bg-gray-700 rounded transition-colors cursor-pointer"
         >
           Today
         </button>
       </div>
 
       {/* Day labels */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
+      <div className="grid grid-cols-7 gap-1 mb-2 select-none cursor-default">
         {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
           <div key={index} className="w-8 h-8 flex items-center justify-center">
             <span className="text-xs text-gray-400 font-medium">{day}</span>

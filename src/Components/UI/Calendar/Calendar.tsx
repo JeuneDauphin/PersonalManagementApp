@@ -107,15 +107,15 @@ const Calendar: React.FC<CalendarProps> = ({
       <div className="flex items-center justify-between mb-3 md:mb-4">
         <div className="flex items-center gap-3 md:gap-4">
           <div className="flex items-center gap-1.5">
-            <button onClick={goToPrevious} className="p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+            <button onClick={goToPrevious} className="p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors cursor-pointer">
               <ChevronLeft size={18} />
             </button>
-            <button onClick={goToNext} className="p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+            <button onClick={goToNext} className="p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors cursor-pointer">
               <ChevronRight size={18} />
             </button>
             <Button text="Today" onClick={goToToday} variant="outline" size="sm" />
           </div>
-          <div className="text-white text-lg md:text-xl font-semibold">{headerLabel}</div>
+          <div className="text-white text-lg md:text-xl font-semibold select-none cursor-default">{headerLabel}</div>
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -173,7 +173,7 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Weekday headers */}
-      <div className="grid grid-cols-7 border-b border-gray-700 text-gray-300 text-xs">
+      <div className="grid grid-cols-7 border-b border-gray-700 text-gray-300 text-xs select-none cursor-default">
         {weekdayLabels.map(d => (
           <div key={d} className="px-2 py-2 text-center">{d}</div>
         ))}
@@ -190,14 +190,14 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
           return (
             <div
               key={key}
-              className={`border border-gray-700 p-1.5 md:p-2 overflow-hidden ${!isSameMonth(d, date) ? 'bg-gray-900/40 text-gray-500' : 'bg-gray-800'} ${isToday(d) ? 'ring-1 ring-blue-500' : ''}`}
+              className={`border border-gray-700 p-1.5 md:p-2 overflow-hidden ${!isSameMonth(d, date) ? 'bg-gray-900/40 text-gray-500' : 'bg-gray-800'} ${isToday(d) ? 'ring-1 ring-blue-500' : ''} cursor-pointer`}
               onClick={(e) => {
                 // avoid day click when clicking event button
                 if ((e.target as HTMLElement).closest('[data-event]')) return;
                 onDateClick?.(d);
               }}
             >
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between mb-1 select-none cursor-default">
                 <span className={`text-xs md:text-sm ${isToday(d) ? 'bg-blue-600 text-white rounded-full px-2 py-0.5' : 'text-gray-300'}`}>{format(d, 'd')}</span>
               </div>
               <div className="space-y-1">
@@ -205,7 +205,7 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
                   <button
                     key={ev._id}
                     data-event
-                    className="w-full text-left truncate px-2 py-1 rounded text-xs text-white"
+                    className="w-full text-left truncate px-2 py-1 rounded text-xs text-white cursor-pointer"
                     style={{ backgroundColor: (ev as any).color }}
                     onClick={() => onEventClick?.(ev)}
                     title={ev.title}
@@ -214,10 +214,10 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
                   </button>
                 ))}
                 {extra > 0 && !showAll && (
-                  <button data-event className="text-xs text-blue-400 hover:text-blue-300" onClick={() => toggleExpand(key)}>+{extra} more</button>
+                  <button data-event className="text-xs text-blue-400 hover:text-blue-300 cursor-pointer" onClick={() => toggleExpand(key)}>+{extra} more</button>
                 )}
                 {extra > 0 && showAll && (
-                  <button data-event className="text-xs text-blue-400 hover:text-blue-300" onClick={() => toggleExpand(key)}>Show less</button>
+                  <button data-event className="text-xs text-blue-400 hover:text-blue-300 cursor-pointer" onClick={() => toggleExpand(key)}>Show less</button>
                 )}
               </div>
             </div>
@@ -336,7 +336,7 @@ const TimeGridBody: React.FC<{ days: Date[]; events: (CalendarEvent & { color: s
                   {allDay.map(ev => (
                     <button
                       key={ev._id}
-                      className="px-2 py-0.5 rounded text-[10px] text-white truncate"
+              className="px-2 py-0.5 rounded text-[10px] text-white truncate cursor-pointer"
                       style={{ backgroundColor: (ev as any).color }}
                       onClick={() => onEventClick?.(ev)}
                       title={ev.title}
@@ -363,7 +363,7 @@ const TimeGridBody: React.FC<{ days: Date[]; events: (CalendarEvent & { color: s
                 {timed.map(ev => (
                   <div
                     key={ev._id}
-                    className="absolute rounded p-1 md:p-1.5 text-[10px] md:text-xs text-white overflow-hidden shadow"
+                    className="absolute rounded p-1 md:p-1.5 text-[10px] md:text-xs text-white overflow-hidden shadow cursor-pointer"
                     style={{
                       top: `${ev.top}%`,
                       height: `${ev.height}%`,

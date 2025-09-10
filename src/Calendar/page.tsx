@@ -24,6 +24,7 @@ const CalendarPage: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventPopup, setShowEventPopup] = useState(false);
   const [dayPopupDate, setDayPopupDate] = useState<Date | null>(null);
+  const [startInEdit, setStartInEdit] = useState(false);
   const [calendarView, setCalendarView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'>('dayGridMonth');
 
   // Determine the currently visible range based on the active calendar view
@@ -74,6 +75,7 @@ const CalendarPage: React.FC = () => {
     // Open the event details
     setSelectedEvent(event);
     setDayPopupDate(null);
+    setStartInEdit(false);
     setShowEventPopup(true);
   };
 
@@ -81,6 +83,7 @@ const CalendarPage: React.FC = () => {
     setSelectedDate(date);
     setSelectedEvent(null);
     setDayPopupDate(date);
+    setStartInEdit(true);
     setShowEventPopup(true);
     // Ensure the list focuses on the selected day
     setCalendarView('timeGridDay');
@@ -90,6 +93,7 @@ const CalendarPage: React.FC = () => {
     // Create new event
     setSelectedEvent(null);
     setDayPopupDate(null);
+    setStartInEdit(true);
     setShowEventPopup(true);
   };
 
@@ -150,6 +154,8 @@ const CalendarPage: React.FC = () => {
                 onEventClick={handleEventClick}
                 onEventEdit={(event: CalendarEvent) => {
                   setSelectedEvent(event);
+                  setDayPopupDate(null);
+                  setStartInEdit(true);
                   setShowEventPopup(true);
                 }}
                 onEventDelete={handleEventDelete}
@@ -184,6 +190,7 @@ const CalendarPage: React.FC = () => {
           onSave={handleEventSave}
           onDelete={selectedEvent ? () => handleEventDelete(selectedEvent._id) : undefined}
           dayDate={dayPopupDate ?? undefined}
+          startInEdit={startInEdit}
         />
       )}
     </Layout>
