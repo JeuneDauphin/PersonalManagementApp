@@ -81,11 +81,11 @@ const TaskLists: React.FC<TaskListsProps> = ({
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {(tasks || []).map((task) => (
-        <div
+    <div
           key={task._id}
           className={`
             bg-gray-800 border border-gray-700 rounded-lg p-4
-            hover:border-gray-600 transition-colors cursor-pointer
+      hover:border-gray-600 transition-colors cursor-pointer group relative
             ${task.status === 'completed' ? 'opacity-75' : ''}
             ${isOverdue(task.dueDate, task.status) ? 'border-red-500' : ''}
           `}
@@ -104,20 +104,7 @@ const TaskLists: React.FC<TaskListsProps> = ({
               </span>
             </div>
 
-            {showActions && (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTaskToggle?.(task);
-                  }}
-                  className="p-1 text-gray-400 hover:text-white rounded transition-colors"
-                  title={task.status === 'completed' ? 'Mark as pending' : 'Mark as completed'}
-                >
-                  <CheckSquare size={14} />
-                </button>
-              </div>
-            )}
+            {/* actions moved to bottom-right */}
           </div>
 
           {/* Description */}
@@ -153,32 +140,42 @@ const TaskLists: React.FC<TaskListsProps> = ({
               Due: {formatDate(task.dueDate)}
               {isOverdue(task.dueDate, task.status) && ' (Overdue)'}
             </div>
-
-            {showActions && (
-              <div className="flex items-center gap-1">
-                <Button
-                  action="edit"
-                  onClick={(e) => {
-                    e?.stopPropagation();
-                    onTaskEdit?.(task);
-                  }}
-                  variant="ghost"
-                  size="sm"
-                  text=""
-                />
-                <Button
-                  action="delete"
-                  onClick={(e) => {
-                    e?.stopPropagation();
-                    onTaskDelete?.(task._id);
-                  }}
-                  variant="ghost"
-                  size="sm"
-                  text=""
-                />
-              </div>
-            )}
           </div>
+
+          {showActions && (
+            <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTaskToggle?.(task);
+                }}
+                className="p-1 text-gray-400 hover:text-white rounded transition-colors"
+                title={task.status === 'completed' ? 'Mark as pending' : 'Mark as completed'}
+              >
+                <CheckSquare size={14} />
+              </button>
+              <Button
+                action="edit"
+                onClick={(e) => {
+                  e?.stopPropagation();
+                  onTaskEdit?.(task);
+                }}
+                variant="ghost"
+                size="sm"
+                text=""
+              />
+              <Button
+                action="delete"
+                onClick={(e) => {
+                  e?.stopPropagation();
+                  onTaskDelete?.(task._id);
+                }}
+                variant="ghost"
+                size="sm"
+                text=""
+              />
+            </div>
+          )}
         </div>
       ))}
     </div>

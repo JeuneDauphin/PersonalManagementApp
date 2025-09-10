@@ -51,7 +51,8 @@ const Button: React.FC<ButtonProps> = ({
 
   // Get default text based on action
   const getActionText = () => {
-    if (text) return text;
+    // Respect empty string to allow icon-only buttons
+    if (text !== undefined) return text;
 
     switch (action) {
       case 'create': return 'Create';
@@ -89,6 +90,9 @@ const Button: React.FC<ButtonProps> = ({
 
   // Override variant based on action if not explicitly set
   const getVariantForAction = (): ButtonVariant => {
+    // If a non-default variant was explicitly provided, keep it
+    if (variant !== 'primary') return variant;
+    // Otherwise, infer a sensible default based on action
     switch (action) {
       case 'delete': return 'danger';
       case 'save': return 'success';

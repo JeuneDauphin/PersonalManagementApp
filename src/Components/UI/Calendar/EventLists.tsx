@@ -87,12 +87,12 @@ const EventLists: React.FC<EventListsProps> = ({
   return (
     <div className="space-y-2">
       {sortedEvents.map((event) => (
-        <div
+    <div
           key={event._id}
           className={`
             border border-gray-700 rounded-lg p-3
-            hover:border-gray-600 transition-colors cursor-pointer
-            group
+      hover:border-gray-600 transition-colors cursor-pointer
+      group relative
           `}
           onClick={() => onEventClick?.(event)}
         >
@@ -106,30 +106,7 @@ const EventLists: React.FC<EventListsProps> = ({
                 <h4 className="text-body text-white font-medium truncate">
                   {event.title}
                 </h4>
-                {showActions && (
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      action="edit"
-                      onClick={(e) => {
-                        e?.stopPropagation();
-                        onEventEdit?.(event);
-                      }}
-                      variant="ghost"
-                      size="sm"
-                      text=""
-                    />
-                    <Button
-                      action="delete"
-                      onClick={(e) => {
-                        e?.stopPropagation();
-                        onEventDelete?.(event._id);
-                      }}
-                      variant="ghost"
-                      size="sm"
-                      text=""
-                    />
-                  </div>
-                )}
+                {/* actions moved to bottom-right */}
               </div>
 
               {/* Time */}
@@ -186,6 +163,31 @@ const EventLists: React.FC<EventListsProps> = ({
               </div>
             </div>
           </div>
+
+          {showActions && (
+            <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                action="edit"
+                onClick={(e) => {
+                  e?.stopPropagation();
+                  onEventEdit?.(event);
+                }}
+                variant="ghost"
+                size="sm"
+                text=""
+              />
+              <Button
+                action="delete"
+                onClick={(e) => {
+                  e?.stopPropagation();
+                  onEventDelete?.(event._id);
+                }}
+                variant="ghost"
+                size="sm"
+                text=""
+              />
+            </div>
+          )}
         </div>
       ))}
     </div>

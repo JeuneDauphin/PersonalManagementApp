@@ -89,10 +89,10 @@ const TestCard: React.FC<TestCardProps> = ({
   };
 
   return (
-    <div
+  <div
       className={`
         bg-gray-800 border border-gray-700 rounded-lg p-4
-        hover:border-gray-600 transition-colors cursor-pointer group
+    hover:border-gray-600 transition-colors cursor-pointer group relative
         ${isSelected ? 'border-blue-500' : ''}
         ${isUpcoming() ? 'border-yellow-500' : ''}
       `}
@@ -113,30 +113,7 @@ const TestCard: React.FC<TestCardProps> = ({
           </div>
         </div>
 
-        {showActions && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              action="edit"
-              onClick={(e) => {
-                e?.stopPropagation();
-                onEdit?.(test);
-              }}
-              variant="ghost"
-              size="sm"
-              text=""
-            />
-            <Button
-              action="delete"
-              onClick={(e) => {
-                e?.stopPropagation();
-                onDelete?.(test._id);
-              }}
-              variant="ghost"
-              size="sm"
-              text=""
-            />
-          </div>
-        )}
+  {/* actions moved to bottom-right */}
       </div>
 
       {/* Date and Duration */}
@@ -240,6 +217,31 @@ const TestCard: React.FC<TestCardProps> = ({
       {isUpcoming() && (
         <div className="mt-3 px-2 py-1 bg-yellow-600 text-yellow-100 text-xs rounded text-center">
           Upcoming Test
+        </div>
+      )}
+
+      {showActions && (
+        <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            action="edit"
+            onClick={(e) => {
+              e?.stopPropagation();
+              onEdit?.(test);
+            }}
+            variant="ghost"
+            size="sm"
+            text=""
+          />
+          <Button
+            action="delete"
+            onClick={(e) => {
+              e?.stopPropagation();
+              onDelete?.(test._id);
+            }}
+            variant="ghost"
+            size="sm"
+            text=""
+          />
         </div>
       )}
     </div>

@@ -64,10 +64,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   };
 
   return (
-    <div
+  <div
       className={`
         bg-gray-800 border-l-4 border-gray-700 rounded-lg p-4
-        hover:border-gray-600 transition-colors cursor-pointer
+    hover:border-gray-600 transition-colors cursor-pointer group relative
         ${getPriorityColor(project.priority)}
         ${project.status === 'completed' ? 'opacity-75' : ''}
         ${isOverdue(project.endDate, project.status) ? 'border-red-500' : ''}
@@ -86,30 +86,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           </span>
         </div>
 
-        {showActions && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              action="edit"
-              onClick={(e) => {
-                e?.stopPropagation();
-                onEdit?.(project);
-              }}
-              variant="ghost"
-              size="sm"
-              text=""
-            />
-            <Button
-              action="delete"
-              onClick={(e) => {
-                e?.stopPropagation();
-                onDelete?.(project._id);
-              }}
-              variant="ghost"
-              size="sm"
-              text=""
-            />
-          </div>
-        )}
+  {/* actions moved to bottom-right */}
       </div>
 
       {/* Progress bar */}
@@ -213,6 +190,31 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           )}
         </div>
       </div>
+
+      {showActions && (
+        <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            action="edit"
+            onClick={(e) => {
+              e?.stopPropagation();
+              onEdit?.(project);
+            }}
+            variant="ghost"
+            size="sm"
+            text=""
+          />
+          <Button
+            action="delete"
+            onClick={(e) => {
+              e?.stopPropagation();
+              onDelete?.(project._id);
+            }}
+            variant="ghost"
+            size="sm"
+            text=""
+          />
+        </div>
+      )}
     </div>
   );
 };
