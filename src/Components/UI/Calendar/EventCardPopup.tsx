@@ -13,6 +13,8 @@ interface EventCardPopupProps {
   onDelete?: () => void;
   // When provided, opening the popup without an event will prefill a new event on this date
   dayDate?: Date;
+  // If true and an event is provided, open directly in edit mode
+  startInEdit?: boolean;
 }
 
 const EventCardPopup: React.FC<EventCardPopupProps> = ({
@@ -22,6 +24,7 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
   onSave,
   onDelete,
   dayDate,
+  startInEdit,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -49,7 +52,7 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
         attendees: event.attendees || [],
         reminders: event.reminders || [15],
       });
-      setIsEditing(false);
+      setIsEditing(!!startInEdit);
     } else if (dayDate) {
       // Prefill a new event for the clicked day at current local time
       const base = new Date(dayDate);
@@ -85,7 +88,7 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
       });
       setIsEditing(true);
     }
-  }, [event, dayDate]);
+  }, [event, dayDate, startInEdit]);
 
   if (!isOpen) return null;
 
