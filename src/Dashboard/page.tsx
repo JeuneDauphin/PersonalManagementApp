@@ -2,15 +2,13 @@
 import React, { useState } from 'react';
 import Layout from '../Components/Layout/Layout';
 import Calendar from '../Components/UI/Calendar/Calendar';
-import TaskLists from '../Components/UI/Tasks/TaskLists';
 import { useTasks, useEvents, useProjects } from '../utils/hooks/hooks';
-import { CalendarEvent, Task, Project } from '../utils/interfaces/interfaces';
-import { addDays, startOfWeek, endOfWeek } from 'date-fns';
+import { startOfWeek, endOfWeek } from 'date-fns';
 
 const DashboardPage: React.FC = () => {
   const { data: tasks, loading: tasksLoading } = useTasks();
-  const { data: events, loading: eventsLoading } = useEvents();
-  const { data: projects, loading: projectsLoading } = useProjects();
+  const { data: events } = useEvents();
+  const { data: projects } = useProjects();
   const [currentDate] = useState(new Date());
 
   // Get this week's events for calendar
@@ -161,7 +159,7 @@ const DashboardPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-small text-gray-400">
-                    Due: {new Date(lastProject.endDate).toLocaleDateString()}
+                    Due: {lastProject?.endDate ? new Date(lastProject.endDate).toLocaleDateString() : 'N/A'}
                   </div>
                 </div>
               </div>

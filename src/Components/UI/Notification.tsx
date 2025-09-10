@@ -1,6 +1,6 @@
 // Notification popup component
 import React, { useEffect } from 'react';
-import { X, Bell, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
+import { X, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
 
 type NotificationType = 'info' | 'success' | 'warning' | 'error';
 

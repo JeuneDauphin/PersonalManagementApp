@@ -1,6 +1,6 @@
 // Universal button component for all CRUD operations throughout the app
 import React from 'react';
-import { Plus, Edit, Trash2, Save, X, Check, Eye, Download, Upload, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, Eye, Download, Upload, Search } from 'lucide-react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'success' | 'outline' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
