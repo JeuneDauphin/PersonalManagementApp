@@ -63,9 +63,9 @@ const Navigation: React.FC<NavigationProps> = ({
         ${collapsed ? 'w-24' : 'w-64'}
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         bg-gray-900 border-r border-gray-800
-  transition-[width,transform] duration-600 ease-[cubic-bezier(.22,1,.36,1)]
-  will-change-[transform,width]
-  overflow-hidden flex flex-col h-screen
+        transition-[width,transform] duration-600 ease-[cubic-bezier(.22,1,.36,1)]
+        will-change-[transform,width]
+        overflow-hidden flex flex-col h-screen
       `}>
         {/* Logo/Header */}
         <div className="p-6 border-b border-gray-800">
