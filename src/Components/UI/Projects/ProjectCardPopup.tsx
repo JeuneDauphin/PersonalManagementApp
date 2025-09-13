@@ -1,9 +1,10 @@
 // Project card popup modal for viewing/editing project details
-import React, { useState, useEffect } from 'react';
-import { X, Calendar, GitBranch, Link, Tag } from 'lucide-react';
-import { Project } from '../../../utils/interfaces/interfaces';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Calendar, GitBranch, Link, Tag, Users } from 'lucide-react';
+import { Project, Contact } from '../../../utils/interfaces/interfaces';
 import { Priority, ProjectStatus } from '../../../utils/types/types';
 import Button from '../Button';
+import { apiService } from '../../../utils/api/Api';
 
 interface ProjectCardPopupProps {
   project?: Project | null;
@@ -40,6 +41,9 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
     collaborators: [] as string[],
   });
   const [tagInput, setTagInput] = useState('');
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [contactSearch, setContactSearch] = useState('');
 
   useEffect(() => {
     if (project) {
@@ -80,6 +84,18 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
       setIsEditing(true);
     }
   }, [project, startInEdit]);
+
+  // Fetch contacts when popup opens
+  useEffect(() => {
+    if (!isOpen) return;
+    let ignore = false;
+    setContactsLoading(true);
+    apiService.getContacts()
+      .then(data => { if (!ignore) setContacts(data); })
+      .catch(() => { /* ignore */ })
+      .finally(() => { if (!ignore) setContactsLoading(false); });
+    return () => { ignore = true; };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -155,6 +171,31 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
       month: 'long',
       day: 'numeric',
     });
+  };
+
+  const filteredContacts = useMemo(() => {
+    const term = contactSearch.trim().toLowerCase();
+    if (!term) return contacts;
+    return contacts.filter(c =>
+      c.firstName.toLowerCase().includes(term) ||
+      c.lastName.toLowerCase().includes(term) ||
+      (c.email?.toLowerCase().includes(term) ?? false)
+    );
+  }, [contacts, contactSearch]);
+
+  const toggleContact = (id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      collaborators: prev.collaborators.includes(id)
+        ? prev.collaborators.filter(a => a !== id)
+        : [...prev.collaborators, id]
+    }));
+  };
+
+  const getContactName = (id: string) => {
+    const c = contacts.find(ct => ct._id === id);
+    if (!c) return id;
+    return `${c.firstName} ${c.lastName}`.trim();
   };
 
   return (
@@ -364,6 +405,54 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Collaborators (Contacts) Selection */}
+              <div>
+                <label className="block text-body text-gray-300 mb-2">Collaborators</label>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={contactSearch}
+                    onChange={(e) => setContactSearch(e.target.value)}
+                    placeholder="Search contacts"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="max-h-40 overflow-y-auto border border-gray-700 rounded-lg divide-y divide-gray-700 bg-gray-750">
+                    {contactsLoading && (
+                      <div className="p-3 text-small text-gray-400">Loading contacts...</div>
+                    )}
+                    {!contactsLoading && filteredContacts.length === 0 && (
+                      <div className="p-3 text-small text-gray-500">No contacts found</div>
+                    )}
+                    {!contactsLoading && filteredContacts.map(c => {
+                      const selected = formData.collaborators.includes(c._id);
+                      return (
+                        <button
+                          type="button"
+                          key={c._id}
+                          onClick={() => toggleContact(c._id)}
+                          className={`w-full flex items-center justify-between px-3 py-2 text-left text-small hover:bg-gray-700 transition ${selected ? 'bg-gray-700' : ''}`}
+                        >
+                          <span className="text-gray-200">{c.firstName} {c.lastName}</span>
+                          {selected && <span className="text-blue-400 text-xs">Selected</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {formData.collaborators.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {formData.collaborators.map(cid => (
+                        <span key={cid} className="px-2 py-1 bg-blue-700/40 text-blue-300 text-small rounded flex items-center gap-1">
+                          {getContactName(cid)}
+                          <button onClick={() => toggleContact(cid)} className="text-blue-300 hover:text-white">
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </>
           ) : (
             // View Mode
@@ -471,6 +560,36 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                   </div>
                 </div>
               )}
+
+                {/* Collaborators */}
+                {project?.collaborators && project.collaborators.length > 0 && (
+                  <div>
+                    <h3 className="text-body font-medium text-gray-300 mb-2">Collaborators</h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Users size={16} className="text-blue-400" />
+                      <span className="text-blue-300">{project.collaborators.length} contact{project.collaborators.length > 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {project.collaborators.map(id => {
+                        const c = contacts.find(x => x._id === id);
+                        const label = c ? `${c.firstName} ${c.lastName}` : id;
+                        const href = c?.email ? `mailto:${c.email}` : (c?.phone ? `tel:${c.phone}` : undefined);
+                        return href ? (
+                          <a
+                            key={id}
+                            href={href}
+                            className="px-2 py-1 rounded bg-blue-700/30 hover:bg-blue-600/40 text-blue-200 text-small"
+                          >{label}</a>
+                        ) : (
+                          <span
+                            key={id}
+                            className="px-2 py-1 rounded bg-blue-700/30 text-blue-200 text-small"
+                          >{label}</span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
               {/* Statistics */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

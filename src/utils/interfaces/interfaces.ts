@@ -18,6 +18,8 @@ export interface Task extends BaseEntity {
   tags: string[];
   estimatedHours?: number;
   actualHours?: number;
+  // UI-only: associated contacts (persisted locally to avoid backend changes)
+  contacts?: string[];
 }
 
 export interface Project extends BaseEntity {
