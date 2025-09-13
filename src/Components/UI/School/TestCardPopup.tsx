@@ -11,6 +11,8 @@ interface TestCardPopupProps {
   onClose: () => void;
   onSave?: (test: Test) => void;
   onDelete?: () => void;
+  // If true and a test is provided, open directly in edit mode
+  startInEdit?: boolean;
 }
 
 const TestCardPopup: React.FC<TestCardPopupProps> = ({
@@ -19,6 +21,7 @@ const TestCardPopup: React.FC<TestCardPopupProps> = ({
   onClose,
   onSave,
   onDelete,
+  startInEdit,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -54,7 +57,7 @@ const TestCardPopup: React.FC<TestCardPopupProps> = ({
         studyMaterials: test.studyMaterials || [],
         notes: test.notes || '',
       });
-      setIsEditing(false);
+      setIsEditing(!!startInEdit);
     } else {
       // New test
       const now = new Date();
@@ -78,7 +81,7 @@ const TestCardPopup: React.FC<TestCardPopupProps> = ({
       });
       setIsEditing(true);
     }
-  }, [test]);
+  }, [test, startInEdit]);
 
   if (!isOpen) return null;
 

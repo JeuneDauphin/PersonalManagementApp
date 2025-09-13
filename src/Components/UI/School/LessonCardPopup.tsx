@@ -11,6 +11,8 @@ interface LessonCardPopupProps {
   onClose: () => void;
   onSave?: (lesson: Lesson) => void;
   onDelete?: () => void;
+  // If true and a lesson is provided, open directly in edit mode
+  startInEdit?: boolean;
 }
 
 const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
@@ -19,6 +21,7 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
   onClose,
   onSave,
   onDelete,
+  startInEdit,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -52,7 +55,7 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
         materials: lesson.materials || [],
         completed: lesson.completed,
       });
-      setIsEditing(false);
+      setIsEditing(!!startInEdit);
     } else {
       // New lesson
       const now = new Date();
@@ -75,7 +78,7 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
       });
       setIsEditing(true);
     }
-  }, [lesson]);
+  }, [lesson, startInEdit]);
 
   if (!isOpen) return null;
 
