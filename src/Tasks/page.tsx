@@ -12,6 +12,7 @@ const TasksPage: React.FC = () => {
   const { data: tasks, loading, refresh } = useTasks();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskPopup, setShowTaskPopup] = useState(false);
+  const [startInEdit, setStartInEdit] = useState(false);
 
   // Advanced filter and search functionality
   const {
@@ -76,11 +77,13 @@ const TasksPage: React.FC = () => {
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
+    setStartInEdit(false);
     setShowTaskPopup(true);
   };
 
   const handleTaskEdit = (task: Task) => {
     setSelectedTask(task);
+    setStartInEdit(true);
     setShowTaskPopup(true);
   };
 
@@ -106,6 +109,7 @@ const TasksPage: React.FC = () => {
 
   const handleAddNew = () => {
     setSelectedTask(null);
+    setStartInEdit(false);
     setShowTaskPopup(true);
   };
 
@@ -192,6 +196,7 @@ const TasksPage: React.FC = () => {
           onClose={() => setShowTaskPopup(false)}
           onSave={handleTaskSave}
           onDelete={selectedTask ? () => handleTaskDelete(selectedTask._id) : undefined}
+          startInEdit={startInEdit}
         />
       )}
     </Layout>

@@ -1,6 +1,6 @@
 // Project detail page: view and edit a single project (replaces popup UX)
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Layout from '../../Components/Layout/Layout';
 import Button from '../../Components/UI/Button';
 import { Calendar, GitBranch, Link, Tag } from 'lucide-react';
@@ -16,7 +16,8 @@ const ProjectDetailPage: React.FC = () => {
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
 
-	const [isEditing, setIsEditing] = useState(false);
+    const location = useLocation() as any;
+    const [isEditing, setIsEditing] = useState<boolean>(!!location.state?.startInEdit);
 	const [formData, setFormData] = useState({
 		name: '',
 		description: '',
@@ -66,8 +67,7 @@ const ProjectDetailPage: React.FC = () => {
 			} catch (e) {
 				setError(e instanceof Error ? e.message : 'Failed to load project');
 			} finally {
-				setLoading(false);
-				setIsEditing(false);
+                setLoading(false);
 			}
 		};
 		run();

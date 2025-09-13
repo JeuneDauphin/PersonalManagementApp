@@ -84,7 +84,7 @@ const ProjectsPage: React.FC = () => {
   };
 
   const handleProjectEdit = (project: Project) => {
-    navigate(`/projects/${project._id}`);
+    navigate(`/projects/${project._id}`, { state: { startInEdit: true } });
   };
 
   const handleProjectDelete = async (projectId: string) => {

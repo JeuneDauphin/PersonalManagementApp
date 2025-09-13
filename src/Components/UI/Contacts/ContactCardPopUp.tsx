@@ -12,6 +12,8 @@ interface ContactCardPopUpProps {
   onClose: () => void;
   onSave?: (contact: Contact) => void;
   onDelete?: () => void;
+  // If true and a contact is provided, open directly in edit mode
+  startInEdit?: boolean;
 }
 
 const ContactCardPopUp: React.FC<ContactCardPopUpProps> = ({
@@ -20,6 +22,7 @@ const ContactCardPopUp: React.FC<ContactCardPopUpProps> = ({
   onClose,
   onSave,
   onDelete,
+  startInEdit,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -55,7 +58,7 @@ const ContactCardPopUp: React.FC<ContactCardPopUpProps> = ({
           github: contact.socialLinks?.github || '',
         },
       });
-      setIsEditing(false);
+      setIsEditing(!!startInEdit);
     } else {
       // New contact
       setFormData({
@@ -75,7 +78,7 @@ const ContactCardPopUp: React.FC<ContactCardPopUpProps> = ({
       });
       setIsEditing(true);
     }
-  }, [contact]);
+  }, [contact, startInEdit]);
 
   if (!isOpen) return null;
 

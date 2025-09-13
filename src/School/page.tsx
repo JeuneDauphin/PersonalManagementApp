@@ -22,6 +22,8 @@ const SchoolPage: React.FC = () => {
   const [selectedTest, setSelectedTest] = useState<Test | null>(null);
   const [showLessonPopup, setShowLessonPopup] = useState(false);
   const [showTestPopup, setShowTestPopup] = useState(false);
+  const [lessonStartInEdit, setLessonStartInEdit] = useState(false);
+  const [testStartInEdit, setTestStartInEdit] = useState(false);
 
   // Advanced filter and search functionality for lessons
   const {
@@ -142,6 +144,7 @@ const SchoolPage: React.FC = () => {
 
   const handleLessonEdit = (lesson: Lesson) => {
     setSelectedLesson(lesson);
+    setLessonStartInEdit(true);
     setShowLessonPopup(true);
   };
 
@@ -184,11 +187,13 @@ const SchoolPage: React.FC = () => {
   // Test handlers
   const handleTestClick = (test: Test) => {
     setSelectedTest(test);
+    setTestStartInEdit(false);
     setShowTestPopup(true);
   };
 
   const handleTestEdit = (test: Test) => {
     setSelectedTest(test);
+    setTestStartInEdit(true);
     setShowTestPopup(true);
   };
 
@@ -222,9 +227,11 @@ const SchoolPage: React.FC = () => {
   const handleAddNew = () => {
     if (activeTab === 'lessons') {
       setSelectedLesson(null);
+      setLessonStartInEdit(false);
       setShowLessonPopup(true);
     } else {
       setSelectedTest(null);
+      setTestStartInEdit(false);
       setShowTestPopup(true);
     }
   };
@@ -351,6 +358,7 @@ const SchoolPage: React.FC = () => {
           onClose={() => setShowLessonPopup(false)}
           onSave={handleLessonSave}
           onDelete={selectedLesson ? () => handleLessonDelete(selectedLesson._id) : undefined}
+          startInEdit={lessonStartInEdit}
         />
       )}
 
@@ -362,6 +370,7 @@ const SchoolPage: React.FC = () => {
           onClose={() => setShowTestPopup(false)}
           onSave={handleTestSave}
           onDelete={selectedTest ? () => handleTestDelete(selectedTest._id) : undefined}
+          startInEdit={testStartInEdit}
         />
       )}
     </Layout>

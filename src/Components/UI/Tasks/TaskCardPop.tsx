@@ -11,6 +11,8 @@ interface TaskCardPopupProps {
   onClose: () => void;
   onSave?: (task: Task) => void;
   onDelete?: () => void;
+  // If true and a task is provided, open directly in edit mode
+  startInEdit?: boolean;
 }
 
 const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
@@ -19,6 +21,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
   onClose,
   onSave,
   onDelete,
+  startInEdit,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -47,7 +50,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         estimatedHours: task.estimatedHours || 0,
         actualHours: task.actualHours || 0,
       });
-      setIsEditing(false);
+      setIsEditing(!!startInEdit);
     } else {
       // New task
       const tomorrow = new Date();
@@ -65,7 +68,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
       });
       setIsEditing(true);
     }
-  }, [task]);
+  }, [task, startInEdit]);
 
   if (!isOpen) return null;
 

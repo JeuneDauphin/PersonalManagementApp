@@ -12,6 +12,7 @@ const ContactsPage: React.FC = () => {
   const { data: contacts, loading, refresh } = useContacts();
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [showContactPopup, setShowContactPopup] = useState(false);
+  const [startInEdit, setStartInEdit] = useState(false);
 
   // Advanced filter and search functionality
   const {
@@ -70,11 +71,13 @@ const ContactsPage: React.FC = () => {
 
   const handleContactClick = (contact: Contact) => {
     setSelectedContact(contact);
+    setStartInEdit(false);
     setShowContactPopup(true);
   };
 
   const handleContactEdit = (contact: Contact) => {
     setSelectedContact(contact);
+    setStartInEdit(true);
     setShowContactPopup(true);
   };
 
@@ -89,6 +92,7 @@ const ContactsPage: React.FC = () => {
 
   const handleAddNew = () => {
     setSelectedContact(null);
+    setStartInEdit(false);
     setShowContactPopup(true);
   };
 
@@ -197,6 +201,7 @@ const ContactsPage: React.FC = () => {
           onClose={() => setShowContactPopup(false)}
           onSave={handleContactSave}
           onDelete={selectedContact ? () => handleContactDelete(selectedContact._id) : undefined}
+          startInEdit={startInEdit}
         />
       )}
     </Layout>

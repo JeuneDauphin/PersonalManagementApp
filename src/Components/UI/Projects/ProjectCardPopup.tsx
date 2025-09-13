@@ -11,6 +11,8 @@ interface ProjectCardPopupProps {
   onClose: () => void;
   onSave?: (project: Project) => void;
   onDelete?: () => void;
+  // If true and a project is provided, open directly in edit mode
+  startInEdit?: boolean;
 }
 
 const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
@@ -19,6 +21,7 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
   onClose,
   onSave,
   onDelete,
+  startInEdit,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -55,7 +58,7 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
         tasks: project.tasks || [],
         collaborators: project.collaborators || [],
       });
-      setIsEditing(false);
+      setIsEditing(!!startInEdit);
     } else {
       // New project
       const today = new Date().toISOString().slice(0, 10);
@@ -76,7 +79,7 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
       });
       setIsEditing(true);
     }
-  }, [project]);
+  }, [project, startInEdit]);
 
   if (!isOpen) return null;
 
