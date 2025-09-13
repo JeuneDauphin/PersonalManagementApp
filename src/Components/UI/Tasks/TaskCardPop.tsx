@@ -1,9 +1,10 @@
 // Task card popup modal for viewing/editing task details
 import React, { useState, useEffect} from 'react';
-import { X, Calendar, Clock, Tag, CheckSquare, Hash } from 'lucide-react';
-import { Task } from '../../../utils/interfaces/interfaces';
+import { X, Calendar, Clock, Tag, CheckSquare, Hash, Users } from 'lucide-react';
+import { Task, Contact } from '../../../utils/interfaces/interfaces';
 import { Priority, Status } from '../../../utils/types/types';
 import Button from '../Button';
+import { apiService } from '../../../utils/api/Api';
 
 interface TaskCardPopupProps {
   task?: Task | null;
@@ -31,8 +32,12 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
     tags: [] as string[],
     estimatedHours: 0,
     actualHours: 0,
+    contacts: [] as string[],
   });
   const [tagInput, setTagInput] = useState('');
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [contactSearch, setContactSearch] = useState('');
 
   useEffect(() => {
     if (task) {
@@ -46,6 +51,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         tags: task.tags || [],
         estimatedHours: task.estimatedHours || 0,
         actualHours: task.actualHours || 0,
+        contacts: task.contacts || [],
       });
       setIsEditing(false);
     } else {
@@ -62,10 +68,22 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         tags: [],
         estimatedHours: 1,
         actualHours: 0,
+        contacts: [],
       });
       setIsEditing(true);
     }
   }, [task]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let ignore = false;
+    setContactsLoading(true);
+    apiService.getContacts()
+      .then(data => { if (!ignore) setContacts(data); })
+      .catch(() => { /* ignore */ })
+      .finally(() => { if (!ignore) setContactsLoading(false); });
+    return () => { ignore = true; };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -103,6 +121,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
       tags: formData.tags,
       estimatedHours: formData.estimatedHours,
       actualHours: formData.actualHours,
+      contacts: formData.contacts,
       createdAt: task?.createdAt || new Date(),
       updatedAt: new Date(),
     };
@@ -139,6 +158,31 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const filteredContacts = React.useMemo(() => {
+    const term = contactSearch.trim().toLowerCase();
+    if (!term) return contacts;
+    return contacts.filter(c =>
+      c.firstName.toLowerCase().includes(term) ||
+      c.lastName.toLowerCase().includes(term) ||
+      (c.email?.toLowerCase().includes(term) ?? false)
+    );
+  }, [contacts, contactSearch]);
+
+  const toggleContact = (id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      contacts: prev.contacts.includes(id)
+        ? prev.contacts.filter(a => a !== id)
+        : [...prev.contacts, id]
+    }));
+  };
+
+  const getContactName = (id: string) => {
+    const c = contacts.find(ct => ct._id === id);
+    if (!c) return id;
+    return `${c.firstName} ${c.lastName}`.trim();
   };
 
   return (
@@ -296,6 +340,54 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Contacts Selection */}
+              <div>
+                <label className="block text-body text-gray-300 mb-2">Contacts</label>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={contactSearch}
+                    onChange={(e) => setContactSearch(e.target.value)}
+                    placeholder="Search contacts"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="max-h-40 overflow-y-auto border border-gray-700 rounded-lg divide-y divide-gray-700 bg-gray-750">
+                    {contactsLoading && (
+                      <div className="p-3 text-small text-gray-400">Loading contacts...</div>
+                    )}
+                    {!contactsLoading && filteredContacts.length === 0 && (
+                      <div className="p-3 text-small text-gray-500">No contacts found</div>
+                    )}
+                    {!contactsLoading && filteredContacts.map(c => {
+                      const selected = formData.contacts.includes(c._id);
+                      return (
+                        <button
+                          type="button"
+                          key={c._id}
+                          onClick={() => toggleContact(c._id)}
+                          className={`w-full flex items-center justify-between px-3 py-2 text-left text-small hover:bg-gray-700 transition ${selected ? 'bg-gray-700' : ''}`}
+                        >
+                          <span className="text-gray-200">{c.firstName} {c.lastName}</span>
+                          {selected && <span className="text-blue-400 text-xs">Selected</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {formData.contacts.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {formData.contacts.map(cid => (
+                        <span key={cid} className="px-2 py-1 bg-blue-700/40 text-blue-300 text-small rounded flex items-center gap-1">
+                          {getContactName(cid)}
+                          <button onClick={() => toggleContact(cid)} className="text-blue-300 hover:text-white">
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </>
           ) : (
             // View Mode
@@ -356,6 +448,23 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                     </div>
                   </div>
                 )}
+
+                  {/* Contacts (UI-only) */}
+                  {formData.contacts && formData.contacts.length > 0 && (
+                    <div className="flex flex-col gap-1 text-body text-blue-300">
+                      <div className="flex items-center gap-2">
+                        <Users size={16} className="text-blue-400" />
+                        <span>{formData.contacts.length} contact{formData.contacts.length > 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {formData.contacts.map(id => (
+                          <span key={id} className="px-2 py-1 rounded bg-blue-700/30 text-blue-200 text-small">
+                            {getContactName(id)}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                 {/* Project Link */}
                 {task.projectId && (

@@ -114,11 +114,11 @@ const TasksPage: React.FC = () => {
       if (task._id.startsWith('temp-')) {
         // Creating new task
         const { _id, createdAt, updatedAt, ...taskData } = task;
-        await apiService.createTask(taskData);
+        await apiService.createTask(taskData as any);
       } else {
         // Updating existing task
         const { _id, createdAt, updatedAt, ...taskData } = task;
-        await apiService.updateTask(task._id, taskData);
+        await apiService.updateTask(task._id, taskData as any);
       }
       setShowTaskPopup(false);
       refresh();
