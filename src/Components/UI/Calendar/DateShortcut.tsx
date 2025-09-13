@@ -1,7 +1,7 @@
 // Mini calendar component for quick date navigation
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEvents } from '../../../utils/hooks/hooks';
+import { CalendarEvent } from '../../../utils/interfaces/interfaces';
 import {
   startOfMonth,
   startOfWeek,
@@ -16,14 +16,15 @@ import {
 interface DateShortcutProps {
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
+  events?: CalendarEvent[]; // events provided by parent to reflect live updates
 }
 
 const DateShortcut: React.FC<DateShortcutProps> = ({
   selectedDate,
   onDateSelect,
+  events = [],
 }) => {
   const [currentMonth, setCurrentMonth] = useState(selectedDate);
-  const { data: events } = useEvents();
 
   const monthStart = startOfMonth(currentMonth);
   const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
@@ -43,7 +44,7 @@ const DateShortcut: React.FC<DateShortcutProps> = ({
 
   // Check if a date has events
   const hasEvents = (date: Date) => {
-    return events.some(event => {
+    return (events || []).some(event => {
       const eventDate = new Date(event.startDate);
       return isSameDay(eventDate, date);
     });
