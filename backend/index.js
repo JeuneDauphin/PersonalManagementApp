@@ -6,6 +6,9 @@ import getRoutes from './routes/get/get_routes.js';
 import postRoutes from './routes/post/post_routes.js';
 import deleteRoutes from './routes/delete/delete_routes.js';
 import patchRoutes from './routes/update/patch_routes.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import schoolFilesRoutes from './routes/files/school_files.js';
 
 // Load env from project root .env (one level up from /backend)
 dotenv.config({ path: '../.env' });
@@ -13,6 +16,12 @@ dotenv.config({ path: '../.env' });
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Static serving for uploaded files
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsDir = path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(uploadsDir));
 
 // Build a MongoDB Atlas URI from separate parts if a full URI isn't provided
 const {
@@ -63,6 +72,7 @@ app.use('/api', getRoutes);
 app.use('/api', postRoutes);
 app.use('/api', deleteRoutes);
 app.use('/api', patchRoutes);
+app.use('/api', schoolFilesRoutes);
 
 // Tasks CRUD handled in routes/* files
 
