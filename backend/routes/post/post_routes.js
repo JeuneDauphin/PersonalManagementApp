@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Contact from '../../models/Contact.js';
 import Lesson from '../../models/Lesson.js';
 import Test from '../../models/Test.js';
@@ -6,6 +7,7 @@ import CalendarEvent from '../../models/CalendarEvent.js';
 import Task from '../../models/Task.js';
 import Notification from '../../models/Notification.js';
 import Project from '../../models/Project.js';
+import TaskCategory from '../../models/TaskCategory.js';
 
 const router = express.Router();
 
@@ -34,8 +36,25 @@ router.post('/projects', async (req, res) => {
 // TASKS
 router.post('/tasks', async (req, res) => {
   try {
-    const task = new Task(req.body);
+    const payload = { ...req.body };
+    // Back-compat aliases
+    if (payload.projectId && !payload.project) payload.project = payload.projectId;
+    if (payload.lessonId && !payload.lesson) payload.lesson = payload.lessonId;
+
+    const task = new Task(payload);
     await task.save();
+
+    // Maintain reverse relations
+    const ops = [];
+    if (task.project && mongoose.isValidObjectId(task.project)) {
+      ops.push(Project.findByIdAndUpdate(task.project, { $addToSet: { tasks: task._id } }).exec());
+    }
+    if (task.lesson && mongoose.isValidObjectId(task.lesson)) {
+      ops.push(Lesson.findByIdAndUpdate(task.lesson, { $addToSet: { tasks: task._id } }).exec());
+    }
+    if (ops.length) await Promise.allSettled(ops);
+
+    await task.populate('category');
     res.status(201).json(task);
   } catch (err) {
     res.status(400).json({ error: 'Failed to create task', details: err.message });
@@ -81,5 +100,17 @@ router.post('/tests', async (req, res) => {
     res.status(201).json(test);
   } catch (err) {
     res.status(400).json({ error: 'Failed to create test', details: err.message });
+  }
+});
+
+// TASK CATEGORIES
+router.post('/task-categories', async (req, res) => {
+  try {
+    const payload = req.body;
+    const cat = new TaskCategory(payload);
+    await cat.save();
+    res.status(201).json(cat);
+  } catch (err) {
+    res.status(400).json({ error: 'Failed to create task category', details: err.message });
   }
 });

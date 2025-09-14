@@ -11,7 +11,7 @@ const projectSchema = new Schema(
     endDate: { type: Date },
     priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], required: true },
     progress: { type: Number, required: true, min: 0, max: 100 },
-    tasks: { type: [String], default: [] }, // Task IDs (optional)
+    tasks: [{ type: Schema.Types.ObjectId, ref: 'Task' }], // Task IDs (optional)
     collaborators: { type: [String], default: [] }, // Contact IDs (optional)
     tags: { type: [String], default: [] },
     githubLink: { type: String, trim: true },
@@ -23,5 +23,6 @@ const projectSchema = new Schema(
 
 projectSchema.index({ status: 1, priority: 1 });
 projectSchema.index({ startDate: 1, endDate: 1 });
+projectSchema.index({ _id: 1, 'tasks': 1 });
 
 export default mongoose.model('Project', projectSchema);

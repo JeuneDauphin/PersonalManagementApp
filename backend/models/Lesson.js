@@ -18,6 +18,7 @@ const lessonSchema = new Schema(
     description: { type: String, trim: true },
     materials: { type: [String], default: [] },
     completed: { type: Boolean, default: false },
+    tasks: [{ type: Schema.Types.ObjectId, ref: 'Task' }],
   },
   { timestamps: true, versionKey: false }
 );
