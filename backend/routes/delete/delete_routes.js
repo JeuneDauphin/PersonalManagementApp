@@ -32,6 +32,7 @@ router.delete('/projects/:id', async (req, res) => {
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
     const project = await Project.findByIdAndDelete(id);
     if (!project) return res.status(404).json({ error: 'Project not found' });
+    await Task.updateMany({ project: id }, { $unset: { project: '' } });
     res.json({ message: 'Project deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete project', details: err.message });
@@ -44,6 +45,14 @@ router.delete('/tasks/:id', async (req, res) => {
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
     const task = await Task.findByIdAndDelete(id);
     if (!task) return res.status(404).json({ error: 'Task not found' });
+    const ops = [];
+    if (task.project && mongoose.isValidObjectId(task.project)) {
+      ops.push(Project.findByIdAndUpdate(task.project, { $pull: { tasks: task._id } }).exec());
+    }
+    if (task.lesson && mongoose.isValidObjectId(task.lesson)) {
+      ops.push(Lesson.findByIdAndUpdate(task.lesson, { $pull: { tasks: task._id } }).exec());
+    }
+    if (ops.length) await Promise.allSettled(ops);
     res.json({ message: 'Task deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete task', details: err.message });
@@ -96,6 +105,7 @@ router.delete('/lessons/:id', async (req, res) => {
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
     const lesson = await Lesson.findByIdAndDelete(id);
     if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
+    await Task.updateMany({ lesson: id }, { $unset: { lesson: '' } });
     res.json({ message: 'Lesson deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete lesson', details: err.message });

@@ -44,7 +44,27 @@ router.patch('/projects/:id', async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
-    const project = await Project.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+    const updates = { ...req.body };
+    const hasTasksUpdate = Array.isArray(updates.tasks);
+    let beforeTasks = [];
+    if (hasTasksUpdate) {
+      const before = await Project.findById(id).select('tasks');
+      if (!before) return res.status(404).json({ error: 'Project not found' });
+      beforeTasks = (before.tasks || []).map((t) => String(t));
+    }
+
+    const project = await Project.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    if (hasTasksUpdate) {
+      const newTasks = (updates.tasks || []).map((t) => String(t));
+      const added = newTasks.filter((t) => !beforeTasks.includes(t));
+      const removed = beforeTasks.filter((t) => !newTasks.includes(t));
+      const ops = [];
+      if (added.length) ops.push(Task.updateMany({ _id: { $in: added } }, { $set: { project: id } }).exec());
+      if (removed.length) ops.push(Task.updateMany({ _id: { $in: removed }, project: id }, { $unset: { project: '' } }).exec());
+      if (ops.length) await Promise.allSettled(ops);
+    }
     if (!project) return res.status(404).json({ error: 'Project not found' });
     res.json(project);
   } catch (err) {
@@ -56,7 +76,27 @@ router.put('/projects/:id', async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
-    const project = await Project.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+    const updates = { ...req.body };
+    const hasTasksUpdate = Array.isArray(updates.tasks);
+    let beforeTasks = [];
+    if (hasTasksUpdate) {
+      const before = await Project.findById(id).select('tasks');
+      if (!before) return res.status(404).json({ error: 'Project not found' });
+      beforeTasks = (before.tasks || []).map((t) => String(t));
+    }
+
+    const project = await Project.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    if (hasTasksUpdate) {
+      const newTasks = (updates.tasks || []).map((t) => String(t));
+      const added = newTasks.filter((t) => !beforeTasks.includes(t));
+      const removed = beforeTasks.filter((t) => !newTasks.includes(t));
+      const ops = [];
+      if (added.length) ops.push(Task.updateMany({ _id: { $in: added } }, { $set: { project: id } }).exec());
+      if (removed.length) ops.push(Task.updateMany({ _id: { $in: removed }, project: id }, { $unset: { project: '' } }).exec());
+      if (ops.length) await Promise.allSettled(ops);
+    }
     if (!project) return res.status(404).json({ error: 'Project not found' });
     res.json(project);
   } catch (err) {
@@ -68,7 +108,35 @@ router.patch('/tasks/:id', async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
-    const task = await Task.findByIdAndUpdate(id, req.body, { new: true, runValidators: true }).populate('category');
+    const updates = { ...req.body };
+    if (updates.projectId && !updates.project) updates.project = updates.projectId;
+    if (updates.lessonId && !updates.lesson) updates.lesson = updates.lessonId;
+
+    // Fetch existing to compare relations
+    const before = await Task.findById(id).select('project lesson');
+    if (!before) return res.status(404).json({ error: 'Task not found' });
+
+    const task = await Task.findByIdAndUpdate(id, updates, { new: true, runValidators: true }).populate('category');
+
+    // Maintain reverse relations if project/lesson changed
+    const ops = [];
+    if (String(before.project || '') !== String(task.project || '')) {
+      if (before.project && mongoose.isValidObjectId(before.project)) {
+        ops.push(Project.findByIdAndUpdate(before.project, { $pull: { tasks: task._id } }).exec());
+      }
+      if (task.project && mongoose.isValidObjectId(task.project)) {
+        ops.push(Project.findByIdAndUpdate(task.project, { $addToSet: { tasks: task._id } }).exec());
+      }
+    }
+    if (String(before.lesson || '') !== String(task.lesson || '')) {
+      if (before.lesson && mongoose.isValidObjectId(before.lesson)) {
+        ops.push(Lesson.findByIdAndUpdate(before.lesson, { $pull: { tasks: task._id } }).exec());
+      }
+      if (task.lesson && mongoose.isValidObjectId(task.lesson)) {
+        ops.push(Lesson.findByIdAndUpdate(task.lesson, { $addToSet: { tasks: task._id } }).exec());
+      }
+    }
+    if (ops.length) await Promise.allSettled(ops);
     if (!task) return res.status(404).json({ error: 'Task not found' });
     res.json(task);
   } catch (err) {
@@ -81,7 +149,35 @@ router.put('/tasks/:id', async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
-    const task = await Task.findByIdAndUpdate(id, req.body, { new: true, runValidators: true }).populate('category');
+    const updates = { ...req.body };
+    if (updates.projectId && !updates.project) updates.project = updates.projectId;
+    if (updates.lessonId && !updates.lesson) updates.lesson = updates.lessonId;
+
+    // Fetch existing to compare relations
+    const before = await Task.findById(id).select('project lesson');
+    if (!before) return res.status(404).json({ error: 'Task not found' });
+
+    const task = await Task.findByIdAndUpdate(id, updates, { new: true, runValidators: true }).populate('category');
+
+    // Maintain reverse relations if project/lesson changed
+    const ops = [];
+    if (String(before.project || '') !== String(task.project || '')) {
+      if (before.project && mongoose.isValidObjectId(before.project)) {
+        ops.push(Project.findByIdAndUpdate(before.project, { $pull: { tasks: task._id } }).exec());
+      }
+      if (task.project && mongoose.isValidObjectId(task.project)) {
+        ops.push(Project.findByIdAndUpdate(task.project, { $addToSet: { tasks: task._id } }).exec());
+      }
+    }
+    if (String(before.lesson || '') !== String(task.lesson || '')) {
+      if (before.lesson && mongoose.isValidObjectId(before.lesson)) {
+        ops.push(Lesson.findByIdAndUpdate(before.lesson, { $pull: { tasks: task._id } }).exec());
+      }
+      if (task.lesson && mongoose.isValidObjectId(task.lesson)) {
+        ops.push(Lesson.findByIdAndUpdate(task.lesson, { $addToSet: { tasks: task._id } }).exec());
+      }
+    }
+    if (ops.length) await Promise.allSettled(ops);
     if (!task) return res.status(404).json({ error: 'Task not found' });
     res.json(task);
   } catch (err) {
@@ -182,7 +278,27 @@ router.patch('/lessons/:id', async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
-    const lesson = await Lesson.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+    const updates = { ...req.body };
+    const hasTasksUpdate = Array.isArray(updates.tasks);
+    let beforeTasks = [];
+    if (hasTasksUpdate) {
+      const before = await Lesson.findById(id).select('tasks');
+      if (!before) return res.status(404).json({ error: 'Lesson not found' });
+      beforeTasks = (before.tasks || []).map((t) => String(t));
+    }
+
+    const lesson = await Lesson.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+    if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
+
+    if (hasTasksUpdate) {
+      const newTasks = (updates.tasks || []).map((t) => String(t));
+      const added = newTasks.filter((t) => !beforeTasks.includes(t));
+      const removed = beforeTasks.filter((t) => !newTasks.includes(t));
+      const ops = [];
+      if (added.length) ops.push(Task.updateMany({ _id: { $in: added } }, { $set: { lesson: id } }).exec());
+      if (removed.length) ops.push(Task.updateMany({ _id: { $in: removed }, lesson: id }, { $unset: { lesson: '' } }).exec());
+      if (ops.length) await Promise.allSettled(ops);
+    }
     if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
     res.json(lesson);
   } catch (err) {
@@ -195,7 +311,27 @@ router.put('/lessons/:id', async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
-    const lesson = await Lesson.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+    const updates = { ...req.body };
+    const hasTasksUpdate = Array.isArray(updates.tasks);
+    let beforeTasks = [];
+    if (hasTasksUpdate) {
+      const before = await Lesson.findById(id).select('tasks');
+      if (!before) return res.status(404).json({ error: 'Lesson not found' });
+      beforeTasks = (before.tasks || []).map((t) => String(t));
+    }
+
+    const lesson = await Lesson.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+    if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
+
+    if (hasTasksUpdate) {
+      const newTasks = (updates.tasks || []).map((t) => String(t));
+      const added = newTasks.filter((t) => !beforeTasks.includes(t));
+      const removed = beforeTasks.filter((t) => !newTasks.includes(t));
+      const ops = [];
+      if (added.length) ops.push(Task.updateMany({ _id: { $in: added } }, { $set: { lesson: id } }).exec());
+      if (removed.length) ops.push(Task.updateMany({ _id: { $in: removed }, lesson: id }, { $unset: { lesson: '' } }).exec());
+      if (ops.length) await Promise.allSettled(ops);
+    }
     if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
     res.json(lesson);
   } catch (err) {

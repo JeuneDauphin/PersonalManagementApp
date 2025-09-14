@@ -90,11 +90,20 @@ router.get('/projects/:id', async (req, res) => {
 // TASKS
 router.get('/tasks', async (req, res) => {
   try {
-    const { page = 1, limit = 40, q, status, priority, projectId, category, categoryId } = req.query;
+    const { page = 1, limit = 40, q, status, priority, projectId, project, lessonId, lesson, category, categoryId } = req.query;
     const filter = {};
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
-    if (projectId) filter.projectId = projectId;
+    const projectFilter = project || projectId;
+    if (projectFilter) {
+      if (mongoose.isValidObjectId(projectFilter)) filter.project = projectFilter;
+      else filter.project = null; // return empty result
+    }
+    const lessonFilter = lesson || lessonId;
+    if (lessonFilter) {
+      if (mongoose.isValidObjectId(lessonFilter)) filter.lesson = lessonFilter;
+      else filter.lesson = null; // return empty result
+    }
     if (categoryId) filter.category = categoryId; // direct id filter
     if (category && !categoryId) {
       // support filtering by category name
