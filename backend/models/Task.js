@@ -10,6 +10,7 @@ const taskSchema = new Schema(
     status: { type: String, enum: ['pending', 'in-progress', 'completed', 'cancelled'], required: true },
     dueDate: { type: Date, required: true },
     projectId: { type: String, trim: true },
+    category: { type: Schema.Types.ObjectId, ref: 'TaskCategory' },
     tags: { type: [String], default: [] },
     estimatedHours: { type: Number },
     actualHours: { type: Number },
@@ -19,5 +20,6 @@ const taskSchema = new Schema(
 
 taskSchema.index({ dueDate: 1 });
 taskSchema.index({ status: 1, priority: 1 });
+taskSchema.index({ category: 1 });
 
 export default mongoose.model('Task', taskSchema);

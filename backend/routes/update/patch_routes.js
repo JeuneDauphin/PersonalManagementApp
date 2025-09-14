@@ -7,6 +7,7 @@ import CalendarEvent from '../../models/CalendarEvent.js';
 import Task from '../../models/Task.js';
 import Notification from '../../models/Notification.js';
 import Project from '../../models/Project.js';
+import TaskCategory from '../../models/TaskCategory.js';
 
 const router = express.Router();
 
@@ -67,7 +68,7 @@ router.patch('/tasks/:id', async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
-    const task = await Task.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+    const task = await Task.findByIdAndUpdate(id, req.body, { new: true, runValidators: true }).populate('category');
     if (!task) return res.status(404).json({ error: 'Task not found' });
     res.json(task);
   } catch (err) {
@@ -80,11 +81,36 @@ router.put('/tasks/:id', async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
-    const task = await Task.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+    const task = await Task.findByIdAndUpdate(id, req.body, { new: true, runValidators: true }).populate('category');
     if (!task) return res.status(404).json({ error: 'Task not found' });
     res.json(task);
   } catch (err) {
     res.status(400).json({ error: 'Failed to update task', details: err.message });
+  }
+});
+
+// TASK CATEGORIES
+router.patch('/task-categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
+    const cat = await TaskCategory.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+    if (!cat) return res.status(404).json({ error: 'Task category not found' });
+    res.json(cat);
+  } catch (err) {
+    res.status(400).json({ error: 'Failed to update task category', details: err.message });
+  }
+});
+
+router.put('/task-categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
+    const cat = await TaskCategory.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+    if (!cat) return res.status(404).json({ error: 'Task category not found' });
+    res.json(cat);
+  } catch (err) {
+    res.status(400).json({ error: 'Failed to update task category', details: err.message });
   }
 });
 

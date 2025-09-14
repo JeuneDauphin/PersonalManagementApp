@@ -6,6 +6,7 @@ import CalendarEvent from '../../models/CalendarEvent.js';
 import Task from '../../models/Task.js';
 import Notification from '../../models/Notification.js';
 import Project from '../../models/Project.js';
+import TaskCategory from '../../models/TaskCategory.js';
 
 const router = express.Router();
 
@@ -36,6 +37,7 @@ router.post('/tasks', async (req, res) => {
   try {
     const task = new Task(req.body);
     await task.save();
+    await task.populate('category');
     res.status(201).json(task);
   } catch (err) {
     res.status(400).json({ error: 'Failed to create task', details: err.message });
@@ -81,5 +83,17 @@ router.post('/tests', async (req, res) => {
     res.status(201).json(test);
   } catch (err) {
     res.status(400).json({ error: 'Failed to create test', details: err.message });
+  }
+});
+
+// TASK CATEGORIES
+router.post('/task-categories', async (req, res) => {
+  try {
+    const payload = req.body;
+    const cat = new TaskCategory(payload);
+    await cat.save();
+    res.status(201).json(cat);
+  } catch (err) {
+    res.status(400).json({ error: 'Failed to create task category', details: err.message });
   }
 });

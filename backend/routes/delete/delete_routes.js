@@ -7,6 +7,7 @@ import CalendarEvent from '../../models/CalendarEvent.js';
 import Task from '../../models/Task.js';
 import Notification from '../../models/Notification.js';
 import Project from '../../models/Project.js';
+import TaskCategory from '../../models/TaskCategory.js';
 
 const router = express.Router();
 
@@ -46,6 +47,21 @@ router.delete('/tasks/:id', async (req, res) => {
     res.json({ message: 'Task deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete task', details: err.message });
+  }
+});
+
+// TASK CATEGORIES
+router.delete('/task-categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
+    const cat = await TaskCategory.findByIdAndDelete(id);
+    if (!cat) return res.status(404).json({ error: 'Task category not found' });
+    // Optionally, unset this category from tasks referencing it
+    await Task.updateMany({ category: id }, { $unset: { category: '' } });
+    res.json({ message: 'Task category deleted' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete task category', details: err.message });
   }
 });
 

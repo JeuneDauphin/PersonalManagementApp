@@ -7,6 +7,7 @@ import CalendarEvent from '../../models/CalendarEvent.js';
 import Task from '../../models/Task.js';
 import Notification from '../../models/Notification.js';
 import Project from '../../models/Project.js';
+import TaskCategory from '../../models/TaskCategory.js';
 
 const router = express.Router();
 
@@ -89,11 +90,18 @@ router.get('/projects/:id', async (req, res) => {
 // TASKS
 router.get('/tasks', async (req, res) => {
   try {
-    const { page = 1, limit = 40, q, status, priority, projectId } = req.query;
+    const { page = 1, limit = 40, q, status, priority, projectId, category, categoryId } = req.query;
     const filter = {};
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
     if (projectId) filter.projectId = projectId;
+    if (categoryId) filter.category = categoryId; // direct id filter
+    if (category && !categoryId) {
+      // support filtering by category name
+      const catDoc = await TaskCategory.findOne({ name: { $regex: `^${category}$`, $options: 'i' } }).select('_id');
+      if (catDoc) filter.category = catDoc._id;
+      else filter.category = null; // will return empty if none
+    }
     if (q) {
       filter.$or = [
         { title: { $regex: q, $options: 'i' } },
@@ -103,7 +111,7 @@ router.get('/tasks', async (req, res) => {
     }
     const skip = (Number(page) - 1) * Number(limit);
     const [items, total] = await Promise.all([
-      Task.find(filter).sort({ dueDate: 1 }).skip(skip).limit(Number(limit)),
+      Task.find(filter).populate('category').sort({ dueDate: 1 }).skip(skip).limit(Number(limit)),
       Task.countDocuments(filter),
     ]);
     res.json({ items, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
@@ -116,11 +124,40 @@ router.get('/tasks/:id', async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
-    const task = await Task.findById(id);
+    const task = await Task.findById(id).populate('category');
     if (!task) return res.status(404).json({ error: 'Task not found' });
     res.json(task);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch task', details: err.message });
+  }
+});
+
+// TASK CATEGORIES
+router.get('/task-categories', async (req, res) => {
+  try {
+    const { page = 1, limit = 100, q } = req.query;
+    const filter = {};
+    if (q) filter.name = { $regex: q, $options: 'i' };
+    const skip = (Number(page) - 1) * Number(limit);
+    const [items, total] = await Promise.all([
+      TaskCategory.find(filter).sort({ name: 1 }).skip(skip).limit(Number(limit)),
+      TaskCategory.countDocuments(filter),
+    ]);
+    res.json({ items, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch task categories', details: err.message });
+  }
+});
+
+router.get('/task-categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
+    const cat = await TaskCategory.findById(id);
+    if (!cat) return res.status(404).json({ error: 'Task category not found' });
+    res.json(cat);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch task category', details: err.message });
   }
 });
 
