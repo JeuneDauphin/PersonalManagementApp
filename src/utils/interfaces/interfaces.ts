@@ -15,6 +15,7 @@ export interface Task extends BaseEntity {
   status: Status;
   dueDate: Date;
   projectId?: string;
+  lessonId?: string;
   tags: string[];
   estimatedHours?: number;
   actualHours?: number;

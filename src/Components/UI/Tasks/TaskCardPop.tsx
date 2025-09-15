@@ -1,7 +1,7 @@
 // Task card popup modal for viewing/editing task details
 import React, { useState, useEffect} from 'react';
-import { X, Calendar, Clock, Tag, CheckSquare, Hash, Users } from 'lucide-react';
-import { Task, Contact } from '../../../utils/interfaces/interfaces';
+import { X, Calendar, Clock, Tag, CheckSquare, Hash, Users, School } from 'lucide-react';
+import { Task, Contact, Project, Lesson } from '../../../utils/interfaces/interfaces';
 import { Priority, Status } from '../../../utils/types/types';
 import Button from '../Button';
 import { apiService } from '../../../utils/api/Api';
@@ -32,6 +32,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
     status: 'pending' as Status,
     dueDate: '',
     projectId: '',
+    lessonId: '',
     tags: [] as string[],
     estimatedHours: 0,
     actualHours: 0,
@@ -41,6 +42,8 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
 
   useEffect(() => {
     if (task) {
@@ -50,7 +53,8 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         priority: task.priority,
         status: task.status,
         dueDate: new Date(task.dueDate).toISOString().slice(0, 16),
-        projectId: task.projectId || '',
+        projectId: (task as any).projectId || (task as any).project || '',
+        lessonId: (task as any).lessonId || (task as any).lesson || '',
         tags: task.tags || [],
         estimatedHours: task.estimatedHours || 0,
         actualHours: task.actualHours || 0,
@@ -68,6 +72,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         status: 'pending',
         dueDate: tomorrow.toISOString().slice(0, 16),
         projectId: '',
+        lessonId: '',
         tags: [],
         estimatedHours: 1,
         actualHours: 0,
@@ -85,6 +90,14 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
       .then(data => { if (!ignore) setContacts(data); })
       .catch(() => { /* ignore */ })
       .finally(() => { if (!ignore) setContactsLoading(false); });
+    apiService.getProjects()
+      .then(data => { if (!ignore) setProjects(data); })
+      .catch(() => { /* ignore */ })
+      .finally(() => { /* noop */ });
+    apiService.getLessons()
+      .then(data => { if (!ignore) setLessons(data); })
+      .catch(() => { /* ignore */ })
+      .finally(() => { /* noop */ });
     return () => { ignore = true; };
   }, [isOpen]);
 
@@ -121,6 +134,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
       status: formData.status,
       dueDate: new Date(formData.dueDate),
       projectId: formData.projectId || undefined,
+      lessonId: formData.lessonId || undefined,
       tags: formData.tags,
       estimatedHours: formData.estimatedHours,
       actualHours: formData.actualHours,
@@ -186,6 +200,16 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
     const c = contacts.find(ct => ct._id === id);
     if (!c) return id;
     return `${c.firstName} ${c.lastName}`.trim();
+  };
+
+  const getProjectName = (id: string) => {
+    const p = projects.find(pr => pr._id === id);
+    return p ? p.name : id;
+  };
+
+  const getLessonTitle = (id: string) => {
+    const l = lessons.find(ls => ls._id === id);
+    return l ? l.title : id;
   };
 
   return (
@@ -278,6 +302,36 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                   onChange={(e) => handleInputChange('dueDate', e.target.value)}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
                 />
+              </div>
+
+              {/* Associations */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-body text-gray-300 mb-2">Project</label>
+                  <select
+                    value={formData.projectId}
+                    onChange={(e) => handleInputChange('projectId', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">None</option>
+                    {projects.map(p => (
+                      <option key={p._id} value={p._id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-body text-gray-300 mb-2">Lesson</label>
+                  <select
+                    value={formData.lessonId}
+                    onChange={(e) => handleInputChange('lessonId', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">None</option>
+                    {lessons.map(l => (
+                      <option key={l._id} value={l._id}>{l.title}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Estimated Hours */}
@@ -412,6 +466,28 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                   </span>
                 </div>
 
+                {/* Associations (Project / Lesson) */}
+                {(task.projectId || (task as any).projectId || (task as any).project || task.lessonId || (task as any).lessonId || (task as any).lesson) && (
+                  <div className="flex flex-col gap-1 mt-2">
+                    {((task as any).projectId || (task as any).project || task.projectId) && (
+                      <div className="flex items-center gap-2 text-body text-blue-400">
+                        <Hash size={16} />
+                        <a href={`/projects`} className="hover:text-blue-300">
+                          {getProjectName((task as any).projectId || (task as any).project || task.projectId!)}
+                        </a>
+                      </div>
+                    )}
+                    {((task as any).lessonId || (task as any).lesson || task.lessonId) && (
+                      <div className="flex items-center gap-2 text-body text-purple-300">
+                        <School size={16} />
+                        <a href={`/school`} className="hover:text-purple-200">
+                          {getLessonTitle((task as any).lessonId || (task as any).lesson || task.lessonId!)}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Description */}
                 {task.description && (
                   <p className="text-body text-gray-300">{task.description}</p>
@@ -469,15 +545,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                     </div>
                   )}
 
-                {/* Project Link */}
-                {task.projectId && (
-                  <div className="flex items-center gap-2 text-body text-blue-400">
-                    <Hash size={16} />
-                    <a href={`/projects`} className="hover:text-blue-300">
-                      View Project
-                    </a>
-                  </div>
-                )}
+                {/* Associations moved above */}
               </>
             )
           )}
