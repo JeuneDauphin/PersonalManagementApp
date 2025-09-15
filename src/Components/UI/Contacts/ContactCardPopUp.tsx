@@ -40,6 +40,9 @@ const ContactCardPopUp: React.FC<ContactCardPopUpProps> = ({
       github: '',
     },
   });
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   useEffect(() => {
     if (contact) {
@@ -82,8 +85,21 @@ const ContactCardPopUp: React.FC<ContactCardPopUpProps> = ({
 
   if (!isOpen) return null;
 
+  const validate = (data: typeof formData) => {
+    const nextErrors: Record<string, string> = {};
+    if (!data.firstName.trim()) nextErrors.firstName = 'First name is required';
+    if (!data.lastName.trim()) nextErrors.lastName = 'Last name is required';
+    return nextErrors;
+  };
+
+  const isInvalid = React.useMemo(() => Object.keys(validate(formData)).length > 0, [formData]);
+
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      setErrors(validate(next));
+      return next;
+    });
   };
 
   const handleSocialLinkChange = (platform: string, value: string) => {
@@ -97,6 +113,11 @@ const ContactCardPopUp: React.FC<ContactCardPopUpProps> = ({
   };
 
   const handleSave = () => {
+    setAttemptedSubmit(true);
+    const currentErrors = validate(formData);
+    setErrors(currentErrors);
+    if (Object.keys(currentErrors).length > 0) return;
+
     // Filter out empty social links
     const socialLinks = Object.entries(formData.socialLinks)
       .filter(([_, url]) => url.trim())
@@ -119,6 +140,9 @@ const ContactCardPopUp: React.FC<ContactCardPopUpProps> = ({
 
     onSave?.(contactData);
   };
+
+  const markTouched = (field: string) => setTouched(prev => ({ ...prev, [field]: true }));
+  const shouldShowError = (field: string) => (touched[field] || attemptedSubmit) && !!errors[field];
 
   const getTypeColor = (type: ContactType) => {
     switch (type) {
@@ -194,9 +218,13 @@ const ContactCardPopUp: React.FC<ContactCardPopUpProps> = ({
                     type="text"
                     value={formData.firstName}
                     onChange={(e) => handleInputChange('firstName', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    onBlur={() => markTouched('firstName')}
+                    className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('firstName') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
                     placeholder="First name"
                   />
+                  {shouldShowError('firstName') && (
+                    <p className="mt-1 text-xs text-red-400">{errors.firstName}</p>
+                  )}
                 </div>
 
                 <div>
@@ -205,9 +233,13 @@ const ContactCardPopUp: React.FC<ContactCardPopUpProps> = ({
                     type="text"
                     value={formData.lastName}
                     onChange={(e) => handleInputChange('lastName', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    onBlur={() => markTouched('lastName')}
+                    className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('lastName') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
                     placeholder="Last name"
                   />
+                  {shouldShowError('lastName') && (
+                    <p className="mt-1 text-xs text-red-400">{errors.lastName}</p>
+                  )}
                 </div>
               </div>
 
@@ -513,7 +545,7 @@ const ContactCardPopUp: React.FC<ContactCardPopUpProps> = ({
                   text="Save"
                   onClick={handleSave}
                   variant="primary"
-                  disabled={!formData.firstName.trim() || !formData.lastName.trim()}
+                  className={isInvalid ? 'opacity-50 cursor-not-allowed' : ''}
                 />
               </>
             )}

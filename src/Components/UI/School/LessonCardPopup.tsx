@@ -38,6 +38,9 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
     completed: false,
   });
   const [materialInput, setMaterialInput] = useState('');
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   useEffect(() => {
     if (lesson) {
@@ -82,9 +85,27 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
 
   if (!isOpen) return null;
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const validate = (data: typeof formData) => {
+    const nextErrors: Record<string, string> = {};
+    if (!data.title.trim()) nextErrors.title = 'Title is required';
+    if (!data.subject.trim()) nextErrors.subject = 'Subject is required';
+    if (!data.date) nextErrors.date = 'Date is required';
+    if (!data.time) nextErrors.time = 'Time is required';
+    return nextErrors;
   };
+
+  const isInvalid = React.useMemo(() => Object.keys(validate(formData)).length > 0, [formData]);
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      setErrors(validate(next));
+      return next;
+    });
+  };
+
+  const markTouched = (field: string) => setTouched(prev => ({ ...prev, [field]: true }));
+  const shouldShowError = (field: string) => (touched[field] || attemptedSubmit) && !!errors[field];
 
   const handleAddMaterial = () => {
     if (materialInput.trim() && !formData.materials.includes(materialInput.trim())) {
@@ -104,6 +125,10 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
   };
 
   const handleSave = () => {
+    setAttemptedSubmit(true);
+    const currentErrors = validate(formData);
+    setErrors(currentErrors);
+    if (Object.keys(currentErrors).length > 0) return;
     // Combine date and time
     const lessonDateTime = new Date(`${formData.date}T${formData.time}`);
 
@@ -194,9 +219,13 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
                     type="text"
                     value={formData.title}
                     onChange={(e) => handleInputChange('title', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    onBlur={() => markTouched('title')}
+                    className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('title') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
                     placeholder="Lesson title"
                   />
+                  {shouldShowError('title') && (
+                    <p className="mt-1 text-xs text-red-400">{errors.title}</p>
+                  )}
                 </div>
 
                 <div>
@@ -205,9 +234,13 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
                     type="text"
                     value={formData.subject}
                     onChange={(e) => handleInputChange('subject', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    onBlur={() => markTouched('subject')}
+                    className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('subject') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
                     placeholder="Subject name"
                   />
+                  {shouldShowError('subject') && (
+                    <p className="mt-1 text-xs text-red-400">{errors.subject}</p>
+                  )}
                 </div>
               </div>
 
@@ -235,8 +268,12 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
                     type="date"
                     value={formData.date}
                     onChange={(e) => handleInputChange('date', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    onBlur={() => markTouched('date')}
+                    className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('date') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
                   />
+                  {shouldShowError('date') && (
+                    <p className="mt-1 text-xs text-red-400">{errors.date}</p>
+                  )}
                 </div>
 
                 <div>
@@ -245,8 +282,12 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
                     type="time"
                     value={formData.time}
                     onChange={(e) => handleInputChange('time', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    onBlur={() => markTouched('time')}
+                    className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('time') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
                   />
+                  {shouldShowError('time') && (
+                    <p className="mt-1 text-xs text-red-400">{errors.time}</p>
+                  )}
                 </div>
 
                 <div>
@@ -486,7 +527,7 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
                   text="Save"
                   onClick={handleSave}
                   variant="primary"
-                  disabled={!formData.title.trim() || !formData.subject.trim()}
+                  className={isInvalid ? 'opacity-50 cursor-not-allowed' : ''}
                 />
               </>
             )}

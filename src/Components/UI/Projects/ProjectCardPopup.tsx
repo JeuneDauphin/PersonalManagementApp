@@ -44,6 +44,9 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   useEffect(() => {
     if (project) {
@@ -100,8 +103,30 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
   if (!isOpen) return null;
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      setErrors(validate(next));
+      return next;
+    });
   };
+
+  const markTouched = (field: string) => setTouched(prev => ({ ...prev, [field]: true }));
+  const shouldShowError = (field: string) => (touched[field] || attemptedSubmit) && !!errors[field];
+
+  const validate = (data: typeof formData) => {
+    const nextErrors: Record<string, string> = {};
+    if (!data.name.trim()) nextErrors.name = 'Project name is required';
+    if (!data.description.trim()) nextErrors.description = 'Description is required';
+    if (!data.startDate) nextErrors.startDate = 'Start date is required';
+    if (data.endDate && data.startDate) {
+      const s = new Date(data.startDate);
+      const e = new Date(data.endDate);
+      if (e < s) nextErrors.endDate = 'End cannot be before start';
+    }
+    return nextErrors;
+  };
+
+  const isInvalid = useMemo(() => Object.keys(validate(formData)).length > 0, [formData]);
 
   const handleAddTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
@@ -121,6 +146,10 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
   };
 
   const handleSave = () => {
+    setAttemptedSubmit(true);
+    const currentErrors = validate(formData);
+    setErrors(currentErrors);
+    if (Object.keys(currentErrors).length > 0) return;
     const projectData: Project = {
       _id: project?._id || `temp-${Date.now()}`,
       name: formData.name,
@@ -233,9 +262,13 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                   type="text"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  onBlur={() => markTouched('name')}
+                  className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('name') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
                   placeholder="Project name"
                 />
+                {shouldShowError('name') && (
+                  <p className="mt-1 text-xs text-red-400">{errors.name}</p>
+                )}
               </div>
 
               {/* Description */}
@@ -244,10 +277,14 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                 <textarea
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
+                  onBlur={() => markTouched('description')}
                   rows={4}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('description') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
                   placeholder="Project description"
                 />
+                {shouldShowError('description') && (
+                  <p className="mt-1 text-xs text-red-400">{errors.description}</p>
+                )}
               </div>
 
               {/* Status and Priority */}
@@ -290,8 +327,12 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                     type="date"
                     value={formData.startDate}
                     onChange={(e) => handleInputChange('startDate', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    onBlur={() => markTouched('startDate')}
+                    className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('startDate') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
                   />
+                  {shouldShowError('startDate') && (
+                    <p className="mt-1 text-xs text-red-400">{errors.startDate}</p>
+                  )}
                 </div>
 
                 <div>
@@ -300,8 +341,12 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                     type="date"
                     value={formData.endDate}
                     onChange={(e) => handleInputChange('endDate', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    onBlur={() => markTouched('endDate')}
+                    className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('endDate') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
                   />
+                  {shouldShowError('endDate') && (
+                    <p className="mt-1 text-xs text-red-400">{errors.endDate}</p>
+                  )}
                 </div>
               </div>
 
@@ -648,7 +693,7 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                   text="Save"
                   onClick={handleSave}
                   variant="primary"
-                  disabled={!formData.name.trim()}
+                  className={isInvalid ? 'opacity-50 cursor-not-allowed' : ''}
                 />
               </>
             )}
