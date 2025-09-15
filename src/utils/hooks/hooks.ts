@@ -52,8 +52,14 @@ export function useProjects() {
   return useApi(() => apiService.getProjects(), []);
 }
 
-export function useEvents() {
-  return useApi(() => apiService.getEvents(), []);
+export function useEvents(params?: { from?: Date; to?: Date; q?: string; type?: string }) {
+  const deps = [params?.from?.toString() || '', params?.to?.toString() || '', params?.q || '', params?.type || ''];
+  return useApi(() => {
+    if (params?.from && params?.to) {
+      return apiService.getEventsInRange(params.from, params.to, { q: params.q, type: params.type });
+    }
+    return apiService.getEvents({ q: params?.q, type: params?.type, limit: 1000 });
+  }, deps);
 }
 
 export function useContacts() {

@@ -19,15 +19,9 @@ import {
 } from 'date-fns';
 
 const CalendarPage: React.FC = () => {
-  const { data: events, loading, refresh } = useEvents();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [showEventPopup, setShowEventPopup] = useState(false);
-  const [dayPopupDate, setDayPopupDate] = useState<Date | null>(null);
-  const [startInEdit, setStartInEdit] = useState(false);
+  // Compute visible range first, then fetch events just for that window
   const [calendarView, setCalendarView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'>('dayGridMonth');
-
-  // Determine the currently visible range based on the active calendar view
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { rangeStart, rangeEnd, listTitle } = useMemo(() => {
     const base = selectedDate;
     if (calendarView === 'timeGridDay') {
@@ -54,6 +48,14 @@ const CalendarPage: React.FC = () => {
       listTitle: `${format(base, 'MMMM yyyy')}`,
     } as const;
   }, [selectedDate, calendarView]);
+
+  const { data: events, loading, refresh } = useEvents({ from: rangeStart, to: rangeEnd });
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [showEventPopup, setShowEventPopup] = useState(false);
+  const [dayPopupDate, setDayPopupDate] = useState<Date | null>(null);
+  const [startInEdit, setStartInEdit] = useState(false);
+
+  // Determine the currently visible range based on the active calendar view
 
   // Helper: does an event intersect the range? (handles multi-day events)
   const eventIntersectsRange = (ev: CalendarEvent, start: Date, end: Date) => {

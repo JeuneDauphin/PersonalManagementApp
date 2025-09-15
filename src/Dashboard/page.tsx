@@ -7,17 +7,15 @@ import { startOfWeek, endOfWeek } from 'date-fns';
 
 const DashboardPage: React.FC = () => {
   const { data: tasks, loading: tasksLoading } = useTasks();
-  const { data: events } = useEvents();
-  const { data: projects } = useProjects();
   const [currentDate] = useState(new Date());
-
-  // Get this week's events for calendar
   const weekStart = startOfWeek(currentDate);
   const weekEnd = endOfWeek(currentDate);
-  const thisWeekEvents = (events || []).filter(event => {
-    const eventDate = new Date(event.startDate);
-    return eventDate >= weekStart && eventDate <= weekEnd;
-  });
+  const { data: events } = useEvents({ from: weekStart, to: weekEnd });
+  const { data: projects } = useProjects();
+
+  // Get this week's events for calendar
+    // We already fetched range-limited events; just use them
+    const thisWeekEvents = events || [];
 
   // Get pending tasks sorted by due date
   const pendingTasks = (tasks || [])

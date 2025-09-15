@@ -197,9 +197,37 @@ class ApiService {
   }
 
   // Calendar Events API
-  async getEvents(): Promise<CalendarEvent[]> {
-    const response = await this.request<PaginatedResponse<CalendarEvent>>('/events');
+  async getEvents(params?: {
+    q?: string;
+    type?: string;
+    from?: string | Date;
+    to?: string | Date;
+    page?: number;
+    limit?: number;
+  }): Promise<CalendarEvent[]> {
+    const qs: string[] = [];
+    if (params) {
+      const { q, type, from, to, page, limit } = params;
+      if (q) qs.push(`q=${encodeURIComponent(q)}`);
+      if (type) qs.push(`type=${encodeURIComponent(type)}`);
+      if (from) qs.push(`from=${encodeURIComponent(typeof from === 'string' ? from : from.toISOString())}`);
+      if (to) qs.push(`to=${encodeURIComponent(typeof to === 'string' ? to : to.toISOString())}`);
+      if (page) qs.push(`page=${page}`);
+      if (limit) qs.push(`limit=${limit}`);
+    }
+    const query = qs.length ? `?${qs.join('&')}` : '';
+    const response = await this.request<PaginatedResponse<CalendarEvent>>(`/events${query}`);
     return response.items || [];
+  }
+
+  // Convenience: get events within a date range with a generous limit
+  async getEventsInRange(from: Date | string, to: Date | string, extra?: { q?: string; type?: string; }): Promise<CalendarEvent[]> {
+    return this.getEvents({
+      from,
+      to,
+      limit: 1000,
+      ...(extra || {}),
+    });
   }
 
   async getEvent(id: string): Promise<CalendarEvent> {
