@@ -1,11 +1,11 @@
 // Project detail page: view and edit a single project (replaces popup UX)
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Layout from '../../Components/Layout/Layout';
 import Button from '../../Components/UI/Button';
 import { Calendar, GitBranch, Link, Tag } from 'lucide-react';
 import { apiService } from '../../utils/api/Api';
-import type { Project } from '../../utils/interfaces/interfaces';
+import type { Project, Task } from '../../utils/interfaces/interfaces';
 import type { Priority, ProjectStatus } from '../../utils/types/types';
 
 const ProjectDetailPage: React.FC = () => {
@@ -13,6 +13,7 @@ const ProjectDetailPage: React.FC = () => {
 	const { id } = useParams<{ id: string }>();
 
 	const [project, setProject] = useState<Project | null>(null);
+	const [tasks, setTasks] = useState<Task[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +48,13 @@ const ProjectDetailPage: React.FC = () => {
 				setLoading(true);
 				const data = await apiService.getProject(id);
 				setProject(data);
+				// fetch tasks linked to project
+				try {
+					const t = await apiService.getTasksByProject(data._id);
+					setTasks(t);
+				} catch {
+					setTasks([]);
+				}
 				// hydrate form
 				setFormData({
 					name: data.name,
@@ -71,7 +79,24 @@ const ProjectDetailPage: React.FC = () => {
 			}
 		};
 		run();
+
+		const onTasksUpdated = (e: Event) => {
+			const detail = (e as CustomEvent).detail as { projectId?: string } | undefined;
+			if (detail?.projectId && detail.projectId === id) {
+				apiService.getTasksByProject(detail.projectId).then(setTasks).catch(() => setTasks([]));
+			}
+		};
+		window.addEventListener('tasksUpdated', onTasksUpdated as EventListener);
+		return () => {
+			window.removeEventListener('tasksUpdated', onTasksUpdated as EventListener);
+		};
 	}, [id]);
+
+	const computedProgress = useMemo(() => {
+		if (!tasks || tasks.length === 0) return 0;
+		const done = tasks.filter(t => t.status === 'completed').length;
+		return Math.round((done / tasks.length) * 100);
+	}, [tasks]);
 
 	const handleInputChange = (field: string, value: any) => {
 		setFormData(prev => ({ ...prev, [field]: value }));
@@ -173,7 +198,7 @@ const ProjectDetailPage: React.FC = () => {
 								<span className={`px-3 py-1 rounded-full text-small font-medium ${getPriorityColor(project.priority)}`}>
 									{project.priority.toUpperCase()}
 								</span>
-								<span className="text-small text-gray-400">Progress: <span className="text-white font-medium">{project.progress}%</span></span>
+								<span className="text-small text-gray-400">Progress: <span className="text-white font-medium">{computedProgress}%</span></span>
 							</div>
 						)}
 					</div>
@@ -276,23 +301,7 @@ const ProjectDetailPage: React.FC = () => {
 									</div>
 								</div>
 
-								{/* Progress */}
-								<div>
-									<label className="block text-sm text-gray-300 mb-2">Progress (%)</label>
-									<input
-										type="range"
-										min="0"
-										max="100"
-										value={formData.progress}
-										onChange={(e) => handleInputChange('progress', parseInt(e.target.value))}
-										className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-									/>
-									<div className="flex justify-between text-small text-gray-400 mt-1">
-										<span>0%</span>
-										<span className="text-white font-medium">{formData.progress}%</span>
-										<span>100%</span>
-									</div>
-								</div>
+								{/* Progress is task-driven; no manual slider here */}
 
 								{/* Links */}
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -374,14 +383,14 @@ const ProjectDetailPage: React.FC = () => {
 						) : (
 							<div className="space-y-6">
 								{/* Progress */}
-								{project && (
+									{project && tasks.length > 0 && (
 									<div className="bg-gray-800 rounded-lg p-4">
 										<div className="flex items-center justify-between mb-2">
 											<div className="text-small text-gray-400">Progress</div>
-											<div className="text-xl font-bold text-white">{project.progress}%</div>
+												<div className="text-xl font-bold text-white">{computedProgress}%</div>
 										</div>
 										<div className="w-full bg-gray-700 rounded-full h-2">
-											<div className="h-2 rounded-full bg-blue-500 transition-all duration-300" style={{ width: `${project.progress}%` }} />
+												<div className="h-2 rounded-full bg-blue-500 transition-all duration-300" style={{ width: `${computedProgress}%` }} />
 										</div>
 									</div>
 								)}
@@ -459,6 +468,25 @@ const ProjectDetailPage: React.FC = () => {
 										</div>
 									</div>
 								)}
+
+									{/* Tasks */}
+									{tasks && (
+										<div className="bg-gray-800 rounded-lg p-4">
+											<h3 className="text-body font-medium text-gray-300 mb-2">Tasks ({tasks.length})</h3>
+											{tasks.length === 0 ? (
+												<div className="text-sm text-gray-500">No tasks linked to this project yet.</div>
+											) : (
+												<ul className="space-y-1">
+													{tasks.map(t => (
+														<li key={t._id} className="flex items-center justify-between text-sm">
+															<span className={`truncate ${t.status === 'completed' ? 'line-through text-gray-500' : 'text-gray-300'}`}>{t.title}</span>
+															<span className={`${t.status === 'completed' ? 'text-green-400' : t.status === 'in-progress' ? 'text-blue-400' : 'text-yellow-400'}`}>{t.status.replace('-', ' ')}</span>
+														</li>
+													))}
+												</ul>
+											)}
+										</div>
+									)}
 
 								{/* Stats */}
 								{project && (

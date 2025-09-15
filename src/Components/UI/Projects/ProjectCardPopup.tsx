@@ -129,7 +129,8 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
       priority: formData.priority,
       startDate: new Date(formData.startDate),
       endDate: formData.endDate ? new Date(formData.endDate) : undefined,
-      progress: formData.progress,
+      // Progress is computed from tasks; ignore manual changes
+      progress: project?.progress ?? 0,
       tags: formData.tags,
       githubLink: formData.githubLink || undefined,
       figmaLink: formData.figmaLink || undefined,
@@ -305,23 +306,7 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                 </div>
               </div>
 
-              {/* Progress */}
-              <div>
-                <label className="block text-body text-gray-300 mb-2">Progress (%)</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={formData.progress}
-                  onChange={(e) => handleInputChange('progress', parseInt(e.target.value))}
-                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-small text-gray-400 mt-1">
-                  <span>0%</span>
-                  <span className="text-white font-medium">{formData.progress}%</span>
-                  <span>100%</span>
-                </div>
-              </div>
+              {/* Progress is task-driven; no manual slider */}
 
               {/* Links */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

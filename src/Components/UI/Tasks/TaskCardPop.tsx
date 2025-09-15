@@ -1,7 +1,7 @@
 // Task card popup modal for viewing/editing task details
 import React, { useState, useEffect} from 'react';
 import { X, Calendar, Clock, Tag, CheckSquare, Hash, Users } from 'lucide-react';
-import { Task, Contact } from '../../../utils/interfaces/interfaces';
+import { Task, Contact, Project } from '../../../utils/interfaces/interfaces';
 import { Priority, Status } from '../../../utils/types/types';
 import Button from '../Button';
 import { apiService } from '../../../utils/api/Api';
@@ -41,6 +41,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
+  const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
     if (task) {
@@ -85,6 +86,10 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
       .then(data => { if (!ignore) setContacts(data); })
       .catch(() => { /* ignore */ })
       .finally(() => { if (!ignore) setContactsLoading(false); });
+    apiService.getProjects()
+      .then(data => { if (!ignore) setProjects(data); })
+      .catch(() => { /* ignore */ })
+      .finally(() => { /* noop */ });
     return () => { ignore = true; };
   }, [isOpen]);
 
@@ -278,6 +283,21 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                   onChange={(e) => handleInputChange('dueDate', e.target.value)}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
                 />
+              </div>
+
+              {/* Project */}
+              <div>
+                <label className="block text-body text-gray-300 mb-2">Project</label>
+                <select
+                  value={formData.projectId}
+                  onChange={(e) => handleInputChange('projectId', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">No project</option>
+                  {projects.map(p => (
+                    <option key={p._id} value={p._id}>{p.name}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Estimated Hours */}

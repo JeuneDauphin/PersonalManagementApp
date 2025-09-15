@@ -1,8 +1,9 @@
 // Project card component displaying project details in a card format
-import React from 'react';
-import { Project } from '../../../utils/interfaces/interfaces';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Project, Task } from '../../../utils/interfaces/interfaces';
 import { Calendar, Users, GitBranch, Link, Clock, CheckCircle, Pause, Play, AlertTriangle, X } from 'lucide-react';
 import Button from '../Button';
+import { apiService } from '../../../utils/api/Api';
 
 interface ProjectCardProps {
   project: Project;
@@ -19,6 +20,36 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   onDelete,
   showActions = true,
 }) => {
+  const [tasks, setTasks] = useState<Task[] | null>(null);
+
+  useEffect(() => {
+    let ignore = false;
+    const load = async () => {
+      try {
+        const list = await apiService.getTasksByProject(project._id);
+        if (!ignore) setTasks(list);
+      } catch {
+        if (!ignore) setTasks([]);
+      }
+    };
+    load();
+
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { projectId?: string } | undefined;
+      if (detail?.projectId && detail.projectId === project._id) {
+        load();
+      }
+    };
+    window.addEventListener('tasksUpdated', handler as EventListener);
+    return () => { ignore = true; window.removeEventListener('tasksUpdated', handler as EventListener); };
+  }, [project._id]);
+
+  const computedProgress = useMemo(() => {
+    if (!tasks || tasks.length === 0) return 0;
+    const total = tasks.length;
+    const done = tasks.filter(t => t.status === 'completed').length;
+    return Math.round((done / total) * 100);
+  }, [tasks, project.progress]);
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'planning': return 'bg-gray-500';
@@ -89,19 +120,21 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   {/* actions moved to bottom-right */}
       </div>
 
-      {/* Progress bar */}
-      <div className="mb-3">
-        <div className="flex items-center justify-between text-small text-gray-400 mb-1">
-          <span>Progress</span>
-          <span>{project.progress}%</span>
+      {/* Progress bar - only when there are tasks */}
+      {tasks && tasks.length > 0 && (
+        <div className="mb-3">
+          <div className="flex items-center justify-between text-small text-gray-400 mb-1">
+            <span>Progress</span>
+            <span>{computedProgress}%</span>
+          </div>
+          <div className="w-full bg-gray-700 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full transition-all duration-300 ${getStatusColor(project.status)}`}
+              style={{ width: `${computedProgress}%` }}
+            />
+          </div>
         </div>
-        <div className="w-full bg-gray-700 rounded-full h-2">
-          <div
-            className={`h-2 rounded-full transition-all duration-300 ${getStatusColor(project.status)}`}
-            style={{ width: `${project.progress}%` }}
-          />
-        </div>
-      </div>
+      )}
 
       {/* Description */}
       {project.description && (
@@ -182,14 +215,29 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               <span>{project.collaborators.length}</span>
             </div>
           )}
-          {project.tasks && project.tasks.length > 0 && (
+          {tasks && tasks.length > 0 && (
             <div className="flex items-center gap-1">
               <CheckCircle size={12} />
-              <span>{project.tasks.length}</span>
+              <span>{tasks.length}</span>
             </div>
           )}
         </div>
       </div>
+
+      {/* Linked tasks preview */}
+      {tasks && tasks.length > 0 && (
+        <div className="mt-3 space-y-1">
+          {tasks.slice(0, 3).map(t => (
+            <div key={t._id} className="flex items-center justify-between text-xs">
+              <span className={`truncate ${t.status === 'completed' ? 'line-through text-gray-500' : 'text-gray-300'}`}>{t.title}</span>
+              <span className={`${t.status === 'completed' ? 'text-green-400' : t.status === 'in-progress' ? 'text-blue-400' : 'text-yellow-400'}`}>{t.status.replace('-', ' ')}</span>
+            </div>
+          ))}
+          {tasks.length > 3 && (
+            <div className="text-xs text-gray-500">+{tasks.length - 3} more…</div>
+          )}
+        </div>
+      )}
 
       {showActions && (
         <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

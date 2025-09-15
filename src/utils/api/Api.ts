@@ -47,8 +47,16 @@ class ApiService {
   }
 
   // Tasks API
-  async getTasks(): Promise<Task[]> {
-    const response = await this.request<PaginatedResponse<Task>>('/tasks');
+  async getTasks(params?: { projectId?: string }): Promise<Task[]> {
+    const query = params?.projectId ? `?projectId=${encodeURIComponent(params.projectId)}&limit=500` : '';
+    const response = await this.request<PaginatedResponse<Task>>(`/tasks${query}`);
+    return response.items || [];
+  }
+
+  // Fetch tasks filtered by project id
+  async getTasksByProject(projectId: string): Promise<Task[]> {
+    if (!projectId) return [];
+    const response = await this.request<PaginatedResponse<Task>>(`/tasks?projectId=${encodeURIComponent(projectId)}&limit=500`);
     return response.items || [];
   }
 
@@ -57,20 +65,31 @@ class ApiService {
   }
 
   async createTask(task: Omit<Task, '_id' | 'createdAt' | 'updatedAt'>): Promise<Task> {
-    return this.request<Task>('/tasks', {
+    const created = await this.request<Task>('/tasks', {
       method: 'POST',
       body: JSON.stringify(task),
     });
+    try {
+      const projectId = (created as any).projectId || (created as any).project;
+      window.dispatchEvent(new CustomEvent('tasksUpdated', { detail: { projectId } }));
+    } catch { }
+    return created;
   }
 
   async updateTask(id: string, task: Partial<Task>): Promise<Task> {
-    return this.request<Task>(`/tasks/${id}`, {
+    const updated = await this.request<Task>(`/tasks/${id}`, {
       method: 'PUT',
       body: JSON.stringify(task),
     });
+    try {
+      const projectId = (updated as any).projectId || (updated as any).project || (task as any).projectId || (task as any).project;
+      window.dispatchEvent(new CustomEvent('tasksUpdated', { detail: { projectId } }));
+    } catch { }
+    return updated;
   }
 
   async deleteTask(id: string): Promise<void> {
+    // We don't know the project after deletion; callers should trigger refresh via toggle flows
     return this.request<void>(`/tasks/${id}`, {
       method: 'DELETE',
     });
