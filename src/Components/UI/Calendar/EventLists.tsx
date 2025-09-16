@@ -79,16 +79,29 @@ const EventLists: React.FC<EventListsProps> = ({
     );
   }
 
-  // Sort events by start time
-  const sortedEvents = [...events].sort(
-    (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-  );
+  // Transform multi-day events into two entries (start and end) for visibility
+  type ListItem = CalendarEvent & { _listRole?: 'start' | 'end' | 'normal'; _listTime?: Date };
+  const expanded: ListItem[] = [];
+  (events || []).forEach(event => {
+    const eventStart = new Date(event.startDate);
+    const eventEnd = new Date(event.endDate);
+    const spansMultipleDays = eventStart.toDateString() !== eventEnd.toDateString();
+    if (spansMultipleDays) {
+      expanded.push({ ...(event as any), _listRole: 'start', _listTime: eventStart });
+      expanded.push({ ...(event as any), _listRole: 'end', _listTime: eventEnd });
+    } else {
+      expanded.push({ ...(event as any), _listRole: 'normal', _listTime: eventStart });
+    }
+  });
+
+  // Sort by the display time
+  const sortedEvents = expanded.sort((a, b) => (a._listTime as Date).getTime() - (b._listTime as Date).getTime());
 
   return (
     <div className="space-y-2">
       {sortedEvents.map((event) => (
     <div
-          key={event._id}
+          key={`${event._id}-${event._listRole || 'normal'}-${(event._listTime as Date)?.getTime?.() ?? ''}`}
           className={`
             border border-gray-700 rounded-lg p-3
       hover:border-gray-600 transition-colors cursor-pointer
@@ -104,7 +117,7 @@ const EventLists: React.FC<EventListsProps> = ({
               {/* Title and time */}
               <div className="flex items-start justify-between mb-1">
                 <h4 className="text-body text-white font-medium truncate">
-                  {event.title}
+                  {event.title} {event._listRole === 'start' ? '(Start)' : event._listRole === 'end' ? '(End)' : ''}
                 </h4>
                 {/* actions moved to bottom-right */}
               </div>
@@ -116,7 +129,13 @@ const EventLists: React.FC<EventListsProps> = ({
                   'All day'
                 ) : (
                   <>
-                    {formatTime(event.startDate)} - {formatTime(event.endDate)}
+                      {event._listRole === 'end'
+                        ? <>Ends {formatTime(event.endDate)}</>
+                        : event._listRole === 'start'
+                          ? <>Starts {formatTime(event.startDate)}</>
+                          : <>
+                            {formatTime(event.startDate)} - {formatTime(event.endDate)}
+                          </>}
                     <span className="mx-1">•</span>
                     {formatDuration(event.startDate, event.endDate)}
                   </>
