@@ -30,6 +30,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
     description: '',
     priority: 'medium' as Priority,
     status: 'pending' as Status,
+    type: '',
     dueDate: '',
     projectId: '',
     lessonId: '',
@@ -38,12 +39,18 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
     actualHours: 0,
     contacts: [] as string[],
   });
+  const presetTypes = ['Homework', 'Sub-Project mission'];
+  const [typeSelect, setTypeSelect] = useState<string>('');
+  const [customType, setCustomType] = useState<string>('');
   const [tagInput, setTagInput] = useState('');
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
   const [projects, setProjects] = useState<Project[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -52,6 +59,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         description: task.description,
         priority: task.priority,
         status: task.status,
+        type: task.type || '',
         dueDate: new Date(task.dueDate).toISOString().slice(0, 16),
         projectId: (task as any).projectId || (task as any).project || '',
         lessonId: (task as any).lessonId || (task as any).lesson || '',
@@ -60,6 +68,18 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         actualHours: task.actualHours || 0,
         contacts: task.contacts || [],
       });
+      // initialize type selector
+      const t = task.type || '';
+      if (t && presetTypes.includes(t)) {
+        setTypeSelect(t);
+        setCustomType('');
+      } else if (t) {
+        setTypeSelect('__custom__');
+        setCustomType(t);
+      } else {
+        setTypeSelect('');
+        setCustomType('');
+      }
       setIsEditing(!!startInEdit);
     } else {
       // New task
@@ -70,6 +90,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         description: '',
         priority: 'medium',
         status: 'pending',
+        type: '',
         dueDate: tomorrow.toISOString().slice(0, 16),
         projectId: '',
         lessonId: '',
@@ -78,6 +99,8 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         actualHours: 0,
         contacts: [],
       });
+      setTypeSelect('');
+      setCustomType('');
       setIsEditing(true);
     }
   }, [task, startInEdit]);
@@ -103,9 +126,24 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
 
   if (!isOpen) return null;
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const validate = (data: typeof formData) => {
+    const nextErrors: Record<string, string> = {};
+    if (!data.title.trim()) nextErrors.title = 'Title is required';
+    return nextErrors;
   };
+
+  const isInvalid = React.useMemo(() => Object.keys(validate(formData)).length > 0, [formData]);
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      setErrors(validate(next));
+      return next;
+    });
+  };
+
+  const markTouched = (field: string) => setTouched(prev => ({ ...prev, [field]: true }));
+  const shouldShowError = (field: string) => (touched[field] || attemptedSubmit) && !!errors[field];
 
   const handleAddTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
@@ -125,13 +163,23 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
   };
 
   const handleSave = () => {
-
+    // Compute final type
+    let finalType: string | undefined = undefined;
+    if (typeSelect === '__custom__') {
+      const t = customType.trim();
+      finalType = t.length ? t : undefined;
+    } else if (typeSelect) {
+      finalType = typeSelect;
+    } else if (formData.type?.trim()) {
+      finalType = formData.type.trim();
+    }
     const taskData: Task = {
       _id: task?._id || `temp-${Date.now()}`,
       title: formData.title,
       description: formData.description,
       priority: formData.priority,
       status: formData.status,
+      type: finalType,
       dueDate: new Date(formData.dueDate),
       projectId: formData.projectId || undefined,
       lessonId: formData.lessonId || undefined,
@@ -247,9 +295,13 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                   type="text"
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  onBlur={() => markTouched('title')}
+                  className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('title') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
                   placeholder="Task title"
                 />
+                {shouldShowError('title') && (
+                  <p className="mt-1 text-xs text-red-400">{errors.title}</p>
+                )}
               </div>
 
               {/* Description */}
@@ -291,6 +343,42 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
+                </div>
+              </div>
+              {/* Type */}
+              <div>
+                <label className="block text-body text-gray-300 mb-2">Type</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <select
+                    value={typeSelect}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setTypeSelect(v);
+                      if (v !== '__custom__') {
+                        // sync to formData for completeness
+                        handleInputChange('type', v);
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select type</option>
+                    {presetTypes.map((pt) => (
+                      <option key={pt} value={pt}>{pt}</option>
+                    ))}
+                    <option value="__custom__">Custom…</option>
+                  </select>
+                  {typeSelect === '__custom__' && (
+                    <input
+                      type="text"
+                      value={customType}
+                      onChange={(e) => {
+                        setCustomType(e.target.value);
+                        handleInputChange('type', e.target.value);
+                      }}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter custom type"
+                    />
+                  )}
                 </div>
               </div>
               {/* Due Date */}
@@ -487,6 +575,12 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                     )}
                   </div>
                 )}
+                {/* Type */}
+                {task.type && (
+                  <div className="flex items-center gap-2 text-body text-purple-300">
+                    <span className="px-2 py-0.5 rounded bg-purple-700/40 border border-purple-600 text-small">{task.type}</span>
+                  </div>
+                )}
 
                 {/* Description */}
                 {task.description && (
@@ -599,7 +693,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                   action="save"
                   onClick={handleSave}
                   variant="primary"
-                    disabled={!formData.title}
+                    className={isInvalid ? 'opacity-50 cursor-not-allowed' : ''}
                 />
               </>
             )}

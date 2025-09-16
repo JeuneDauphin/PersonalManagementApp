@@ -8,6 +8,8 @@ const taskSchema = new Schema(
     description: { type: String, required: true, trim: true },
     priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], required: true },
     status: { type: String, enum: ['pending', 'in-progress', 'completed', 'cancelled'], required: true },
+    // Freeform task type (e.g., Homework, Sub-Project mission)
+    type: { type: String, trim: true },
     dueDate: { type: Date, required: true },
     project: { type: Schema.Types.ObjectId, ref: 'Project' },
     lesson: { type: Schema.Types.ObjectId, ref: 'Lesson' },

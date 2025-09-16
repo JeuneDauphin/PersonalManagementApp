@@ -107,6 +107,15 @@ const TaskLists: React.FC<TaskListsProps> = ({
             {/* actions moved to bottom-right */}
           </div>
 
+          {/* Type badge */}
+          {task.type && (
+            <div className="mb-2">
+              <span className="inline-block px-2 py-0.5 rounded bg-purple-700/40 border border-purple-600 text-purple-200 text-xs">
+                {task.type}
+              </span>
+            </div>
+          )}
+
           {/* Description */}
           {task.description && (
             <p className="text-small text-gray-400 mb-3 line-clamp-2">
