@@ -1,6 +1,6 @@
 // Custom Google-like calendar component (no external calendar package)
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { addDays, addMonths, addWeeks, differenceInMinutes, endOfMonth, endOfWeek, format, isAfter, isSameDay, isSameMonth, isToday, parseISO, setHours, setMinutes, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
+import { addDays, addMonths, addWeeks, differenceInCalendarDays, differenceInMinutes, endOfMonth, endOfWeek, format, isAfter, isSameDay, isSameMonth, isToday, parseISO, setHours, setMinutes, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { CalendarEvent } from '../../../utils/interfaces/interfaces';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Button from '../Button';
@@ -148,25 +148,18 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
   const days: Date[] = [];
   for (let d = start; !isAfter(d, end); d = addDays(d, 1)) days.push(d);
 
-  // group events by day
+  // group events by day (used for counts and potential per-day content)
   const eventsByDay = useMemo(() => {
     const map = new Map<string, (CalendarEvent & { color: string })[]>();
     days.forEach(d => map.set(d.toDateString(), []));
     events.forEach(e => {
       const s = startOfDay(e.startDate);
       const eEnd = startOfDay(e.endDate);
-      // Only display on the start and end dates; skip intermediate days
-      if (isSameDay(s, eEnd)) {
-        const key = s.toDateString();
+      for (let d = s; !isAfter(d, eEnd); d = addDays(d, 1)) {
+        const key = d.toDateString();
         if (map.has(key)) map.get(key)!.push(e);
-      } else {
-        const startKey = s.toDateString();
-        const endKey = eEnd.toDateString();
-        if (map.has(startKey)) map.get(startKey)!.push(e);
-        if (map.has(endKey)) map.get(endKey)!.push(e);
       }
     });
-    // sort each day by start time
     map.forEach(list => list.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()));
     return map;
   }, [events, days]);
@@ -175,6 +168,8 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
   const toggleExpand = (key: string) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
 
   const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const ROW_HEIGHT = 18; // px per lane
+  const TOP_OFFSET = 36; // px below the day number row (more space between date and bar)
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -185,53 +180,117 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
         ))}
       </div>
 
-      {/* Days grid */}
-      <div className="grid grid-cols-7 grid-rows-6 flex-1 min-h-0 overflow-auto">
-        {days.map((d) => {
-          const key = d.toDateString();
-          const dayEvents = eventsByDay.get(key) || [];
-          const showAll = expanded[key];
-          const limit = 3;
-          const extra = Math.max(0, dayEvents.length - limit);
-          return (
-            <div
-              key={key}
-              className={`border border-gray-700 p-1.5 md:p-2 overflow-hidden ${!isSameMonth(d, date) ? 'bg-gray-900/40 text-gray-500' : 'bg-gray-800'} ${isToday(d) ? 'ring-1 ring-blue-500' : ''} cursor-pointer`}
-              onClick={(e) => {
-                // avoid day click when clicking event button
-                if ((e.target as HTMLElement).closest('[data-event]')) return;
-                onDateClick?.(d);
-              }}
-            >
-              <div className="flex items-center justify-between mb-1 select-none cursor-default">
-                <span className={`text-xs md:text-sm ${isToday(d) ? 'bg-blue-600 text-white rounded-full px-2 py-0.5' : 'text-gray-300'}`}>{format(d, 'd')}</span>
+      {/* Weeks grid with continuous event bars overlay */}
+      <div className="flex-1 min-h-0 overflow-auto">
+        <div className="flex flex-col h-full">
+          {Array.from({ length: 6 }).map((_, wIdx) => {
+            const weekStart = addDays(start, wIdx * 7);
+            const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+            const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+
+            // Build event segments that overlap this week
+            type Seg = { event: CalendarEvent & { color: string }; startCol: number; endCol: number; isStart: boolean; isEnd: boolean };
+            const overlapping: Seg[] = (events || [])
+              .filter(ev => {
+                const evStart = startOfDay(ev.startDate as Date);
+                const evEnd = startOfDay(ev.endDate as Date);
+                return !(isAfter(weekStart, evEnd) || isAfter(evStart, weekEnd));
+              })
+              .map(ev => {
+                const evStart = startOfDay(ev.startDate as Date);
+                const evEnd = startOfDay(ev.endDate as Date);
+                const segStartDay = isAfter(evStart, weekStart) ? evStart : weekStart;
+                const segEndDay = isAfter(weekEnd, evEnd) ? evEnd : weekEnd;
+                const startCol = Math.max(0, Math.min(6, differenceInCalendarDays(segStartDay, weekStart)));
+                const endCol = Math.max(0, Math.min(6, differenceInCalendarDays(segEndDay, weekStart)));
+                const isStart = isSameDay(segStartDay, evStart);
+                const isEnd = isSameDay(segEndDay, evEnd);
+                return { event: ev as any, startCol, endCol, isStart, isEnd };
+              })
+              .sort((a, b) => a.startCol - b.startCol || a.endCol - b.endCol);
+
+            // Assign to lanes (rows) to avoid overlaps
+            const lanes: Seg[][] = [];
+            overlapping.forEach(seg => {
+              let placed = false;
+              for (const lane of lanes) {
+                const last = lane[lane.length - 1];
+                if (!last || seg.startCol > last.endCol) {
+                  lane.push(seg);
+                  placed = true;
+                  break;
+                }
+              }
+              if (!placed) lanes.push([seg]);
+            });
+
+            return (
+              <div key={wIdx} className="relative" style={{ height: `${100 / 6}%` }}>
+                {/* Day cells for this week */}
+                <div className="grid grid-cols-7 h-full">
+                  {weekDays.map((d) => {
+                    const key = d.toDateString();
+                    const dayEvents = eventsByDay.get(key) || [];
+                    const showAll = expanded[key];
+                    const limit = 3;
+                    const extra = Math.max(0, dayEvents.length - limit);
+                    return (
+                      <div
+                        key={key}
+                        className={`border border-gray-700 p-1.5 md:p-2 overflow-hidden ${!isSameMonth(d, date) ? 'bg-gray-900/40 text-gray-500' : 'bg-gray-800'} cursor-pointer`}
+                        onClick={(e) => {
+                          if ((e.target as HTMLElement).closest('[data-event]')) return;
+                          onDateClick?.(d);
+                        }}
+                      >
+                        <div className="relative flex items-center justify-center mb-1 select-none cursor-default">
+                          <span className={`text-xs md:text-sm ${isToday(d) ? 'bg-blue-600 text-white rounded-full px-2 py-0.5' : 'text-gray-300'}`}>{format(d, 'd')}</span>
+                          {!showAll && extra > 0 && (
+                            <button
+                              data-event
+                              className="absolute right-1 top-0 text-[10px] text-blue-400 hover:text-blue-300 cursor-pointer"
+                              onClick={() => toggleExpand(key)}
+                            >
+                              +{extra}
+                            </button>
+                          )}
+                        </div>
+                        {/* Reserve space; events render in overlay */}
+                        <div style={{ height: Math.max(ROW_HEIGHT * lanes.length + 6, 24) }} />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Overlay continuous bars for this week */}
+                <div className="absolute inset-x-0" style={{ top: TOP_OFFSET }}>
+                  {lanes.map((lane, li) => (
+                    <div key={li} className="relative" style={{ height: ROW_HEIGHT }}>
+                      {lane.map(seg => {
+                        const widthCols = seg.endCol - seg.startCol + 1;
+                        const left = `calc(${seg.startCol} * (100% / 7))`;
+                        const width = `calc(${widthCols} * (100% / 7) - 2px)`;
+                        const showTitle = seg.isStart || seg.startCol === 0; // show at start of event or when a new week segment begins
+                        return (
+                          <button
+                            key={`${seg.event._id}-${seg.startCol}-${seg.endCol}`}
+                            data-event
+                            className={`absolute text-left text-xs text-white px-2 cursor-pointer ${(seg.isStart || seg.startCol === 0) ? 'rounded-l' : ''} ${(seg.isEnd || seg.endCol === 6) ? 'rounded-r' : ''}`}
+                            style={{ left, width, top: 2, height: ROW_HEIGHT - 4, lineHeight: `${ROW_HEIGHT - 4}px`, backgroundColor: (seg.event as any).color, zIndex: 10 as any }}
+                            onClick={() => onEventClick?.(seg.event)}
+                            title={seg.event.title}
+                          >
+                            {showTitle ? seg.event.title : '\u00A0'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-1">
-                {(showAll ? dayEvents : dayEvents.slice(0, limit)).map(ev => (
-                  <button
-                    key={ev._id}
-                    data-event
-                    className="w-full text-left truncate px-2 py-1 rounded text-xs text-white cursor-pointer"
-                    style={{ backgroundColor: (ev as any).color }}
-                    onClick={() => onEventClick?.(ev)}
-                    title={ev.title}
-                  >
-                    {ev.isAllDay ? 'All day • ' : ''}{ev.title}
-                    {!isSameDay(ev.startDate, ev.endDate) && (
-                      isSameDay(d, ev.startDate) ? ' (Start)' : (isSameDay(d, ev.endDate) ? ' (End)' : '')
-                    )}
-                  </button>
-                ))}
-                {extra > 0 && !showAll && (
-                  <button data-event className="text-xs text-blue-400 hover:text-blue-300 cursor-pointer" onClick={() => toggleExpand(key)}>+{extra} more</button>
-                )}
-                {extra > 0 && showAll && (
-                  <button data-event className="text-xs text-blue-400 hover:text-blue-300 cursor-pointer" onClick={() => toggleExpand(key)}>Show less</button>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -368,12 +427,7 @@ const TimeGridBody: React.FC<{ days: Date[]; events: (CalendarEvent & { color: s
                       style={{ backgroundColor: (ev as any).color }}
                       onClick={() => onEventClick?.(ev)}
                       title={ev.title}
-                    >
-                      {ev.title}
-                      {!isSameDay(ev.startDate, ev.endDate) && (
-                        isSameDay(day, ev.startDate) ? ' (Start)' : (isSameDay(day, ev.endDate) ? ' (End)' : '')
-                      )}
-                    </button>
+                    >{ev.title}</button>
                   ))}
                 </div>
               </div>
@@ -407,15 +461,9 @@ const TimeGridBody: React.FC<{ days: Date[]; events: (CalendarEvent & { color: s
                     onClick={() => onEventClick?.(ev)}
                     title={ev.title}
                   >
-                    <div className="font-medium truncate">{ev.title} {ev.displayRole === 'start' ? '(Start)' : ev.displayRole === 'end' ? '(End)' : ''}</div>
+                    <div className="font-medium truncate">{ev.title}</div>
                     <div className="opacity-80 truncate">
-                      {ev.displayRole === 'end' ? (
-                        <>Ends {format(ev.endDate, 'HH:mm')}</>
-                      ) : ev.displayRole === 'start' ? (
-                        <>Starts {format(ev.startDate, 'HH:mm')}</>
-                      ) : (
-                        <>{format(ev.startDate, 'HH:mm')} – {format(ev.endDate, 'HH:mm')}</>
-                      )}
+                      {format(ev.startDate, 'HH:mm')} – {format(ev.endDate, 'HH:mm')}
                     </div>
                   </div>
                 ))}
