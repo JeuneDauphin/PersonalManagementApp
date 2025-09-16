@@ -84,7 +84,8 @@ const Calendar: React.FC<CalendarProps> = ({
     ...e,
     startDate: normalizeDate(e.startDate),
     endDate: normalizeDate(e.endDate),
-    color: getEventColor(e.type)
+    // Respect a provided color (for synthetic events like tasks/projects), else fallback by type
+    color: (e as any).color || getEventColor(e.type)
   })), [events]);
 
   // Header label

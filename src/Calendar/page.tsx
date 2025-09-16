@@ -5,8 +5,8 @@ import Calendar from '../Components/UI/Calendar/Calendar';
 import EventLists from '../Components/UI/Calendar/EventLists';
 import DateShortcut from '../Components/UI/Calendar/DateShortcut';
 import EventCardPopup from '../Components/UI/Calendar/EventCardPopup';
-import { useEvents } from '../utils/hooks/hooks';
-import { CalendarEvent } from '../utils/interfaces/interfaces';
+import { useEvents, useProjects, useTasks } from '../utils/hooks/hooks';
+import { CalendarEvent, Task, Project } from '../utils/interfaces/interfaces';
 import { apiService } from '../utils/api/Api';
 import Notification from '../Components/UI/Notification';
 import {
@@ -21,6 +21,8 @@ import {
 
 const CalendarPage: React.FC = () => {
   const { data: events, loading, refresh } = useEvents();
+  const { data: tasks } = useTasks();
+  const { data: projects } = useProjects();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventPopup, setShowEventPopup] = useState(false);
@@ -66,10 +68,63 @@ const CalendarPage: React.FC = () => {
     return evStart <= end && evEnd >= start;
   };
 
-  // Filter events for the computed range
+  // Convert tasks to synthetic all-day calendar events (due date only)
+  const taskEvents: CalendarEvent[] = useMemo(() => {
+    return (tasks || []).filter(t => !!t.dueDate).map((t: Task): CalendarEvent => ({
+      _id: `task-${t._id}`,
+      title: `Task: ${t.title}`,
+      description: t.description,
+      startDate: new Date(t.dueDate),
+      endDate: new Date(t.dueDate),
+      isAllDay: true,
+      type: 'deadline',
+      location: undefined,
+      attendees: undefined,
+      reminders: [],
+      createdAt: new Date(t.createdAt),
+      updatedAt: new Date(t.updatedAt),
+      // UI-only color to distinguish tasks
+      ...({ color: '#ef4444' } as any),
+    }));
+  }, [tasks]);
+
+  // Convert projects to synthetic all-day multi-day events spanning start..end or 1 day if no end
+  const projectEvents: CalendarEvent[] = useMemo(() => {
+    return (projects || []).filter(p => !!p.startDate).map((p: Project): CalendarEvent => {
+      const s = new Date(p.startDate);
+      const e = p.endDate ? new Date(p.endDate) : new Date(p.startDate);
+      return {
+        _id: `project-${p._id}`,
+        title: `Project: ${p.name}`,
+        description: p.description,
+        startDate: s,
+        endDate: e,
+        isAllDay: true,
+        type: 'personal',
+        location: undefined,
+        attendees: undefined,
+        reminders: [],
+        createdAt: new Date(p.createdAt),
+        updatedAt: new Date(p.updatedAt),
+        // UI-only color to distinguish projects (purple)
+        ...({ color: '#8b5cf6' } as any),
+      } as any;
+    });
+  }, [projects]);
+
+  // Merge API events with synthetic task/project events
+  const mergedEvents: CalendarEvent[] = useMemo(() => {
+    return [
+      ...(events || []),
+      ...taskEvents,
+      ...projectEvents,
+    ];
+  }, [events, taskEvents, projectEvents]);
+
+  // Filter events for the computed range (from merged)
   const eventsForList = useMemo(() => {
-    return (events || []).filter((ev) => eventIntersectsRange(ev, rangeStart, rangeEnd));
-  }, [events, rangeStart, rangeEnd]);
+    return (mergedEvents || []).filter((ev) => eventIntersectsRange(ev, rangeStart, rangeEnd));
+  }, [mergedEvents, rangeStart, rangeEnd]);
 
   const handleEventClick = (event: CalendarEvent) => {
     // Open the event details popup without changing the current calendar view or selected date
@@ -172,7 +227,7 @@ const CalendarPage: React.FC = () => {
         <div className="flex-1 flex flex-col min-h-0">
           <div className="flex-1 min-h-0">
             <Calendar
-              events={events}
+              events={mergedEvents}
               currentDate={selectedDate}
               onEventClick={handleEventClick}
               onDateClick={handleDateClick}
