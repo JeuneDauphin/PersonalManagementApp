@@ -152,11 +152,19 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
   const eventsByDay = useMemo(() => {
     const map = new Map<string, (CalendarEvent & { color: string })[]>();
     days.forEach(d => map.set(d.toDateString(), []));
-    events.forEach(event => {
-      const startKey = startOfDay(event.startDate).toDateString();
-      const endKey = startOfDay(event.endDate).toDateString();
-      if (map.has(startKey)) map.get(startKey)!.push(event);
-      if (endKey !== startKey && map.has(endKey)) map.get(endKey)!.push(event);
+    events.forEach(e => {
+      const s = startOfDay(e.startDate);
+      const eEnd = startOfDay(e.endDate);
+      // Only display on the start and end dates; skip intermediate days
+      if (isSameDay(s, eEnd)) {
+        const key = s.toDateString();
+        if (map.has(key)) map.get(key)!.push(e);
+      } else {
+        const startKey = s.toDateString();
+        const endKey = eEnd.toDateString();
+        if (map.has(startKey)) map.get(startKey)!.push(e);
+        if (map.has(endKey)) map.get(endKey)!.push(e);
+      }
     });
     // sort each day by start time
     map.forEach(list => list.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()));
