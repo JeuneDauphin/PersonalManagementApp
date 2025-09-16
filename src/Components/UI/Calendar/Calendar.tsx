@@ -152,13 +152,11 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
   const eventsByDay = useMemo(() => {
     const map = new Map<string, (CalendarEvent & { color: string })[]>();
     days.forEach(d => map.set(d.toDateString(), []));
-    events.forEach(e => {
-      const s = startOfDay(e.startDate);
-      const eEnd = startOfDay(e.endDate);
-      for (let d = s; !isAfter(d, eEnd); d = addDays(d, 1)) {
-        const key = d.toDateString();
-        if (map.has(key)) map.get(key)!.push(e);
-      }
+    events.forEach(event => {
+      const startKey = startOfDay(event.startDate).toDateString();
+      const endKey = startOfDay(event.endDate).toDateString();
+      if (map.has(startKey)) map.get(startKey)!.push(event);
+      if (endKey !== startKey && map.has(endKey)) map.get(endKey)!.push(event);
     });
     // sort each day by start time
     map.forEach(list => list.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()));
@@ -211,6 +209,9 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
                     title={ev.title}
                   >
                     {ev.isAllDay ? 'All day • ' : ''}{ev.title}
+                    {!isSameDay(ev.startDate, ev.endDate) && (
+                      isSameDay(d, ev.startDate) ? ' (Start)' : (isSameDay(d, ev.endDate) ? ' (End)' : '')
+                    )}
                   </button>
                 ))}
                 {extra > 0 && !showAll && (
@@ -229,19 +230,36 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
 };
 
 // Overlap layout helper
-type PositionedEvent = CalendarEvent & { top: number; height: number; left: number; width: number; color: string };
+type PositionedEvent = CalendarEvent & { top: number; height: number; left: number; width: number; color: string; displayRole?: 'normal' | 'start' | 'end' };
 
-function layoutDayEvents(dayEvents: (CalendarEvent & { color: string })[], day: Date): PositionedEvent[] {
-  // filter to timed events within this day
+function layoutDayEvents(allEvents: (CalendarEvent & { color: string })[], day: Date): PositionedEvent[] {
   const startBoundary = setHours(setMinutes(startOfDay(day), 0), HOURS_START);
-  // const endBoundary = setHours(setMinutes(startOfDay(day), 0), HOURS_END);
 
-  const items = dayEvents
-    .filter(e => !e.isAllDay && isSameDay(e.startDate, day))
-    .map(e => ({ ...e }));
+  // Build day items: single-day as normal; multi-day -> start/end markers only
+  const MARKER_MINUTES = 15; // small visual marker height
+  const items: (CalendarEvent & { color: string; displayRole?: 'normal' | 'start' | 'end'; __start?: Date; __end?: Date })[] = [];
+
+  (allEvents || []).forEach(event => {
+    if (event.isAllDay) return; // handled separately in all-day lane
+    const eventStart = new Date(event.startDate);
+    const eventEnd = new Date(event.endDate);
+    const isMultiDay = !isSameDay(eventStart, eventEnd);
+    if (!isMultiDay) {
+      if (isSameDay(eventStart, day)) items.push({ ...(event as any), displayRole: 'normal', __start: eventStart, __end: eventEnd });
+      return;
+    }
+    if (isSameDay(eventStart, day)) {
+      const endMarker = new Date(eventStart.getTime() + MARKER_MINUTES * 60 * 1000);
+      items.push({ ...(event as any), displayRole: 'start', __start: eventStart, __end: endMarker });
+    }
+    if (isSameDay(eventEnd, day)) {
+      const endMarkerEnd = new Date(eventEnd.getTime() + MARKER_MINUTES * 60 * 1000);
+      items.push({ ...(event as any), displayRole: 'end', __start: eventEnd, __end: endMarkerEnd });
+    }
+  });
 
   // Sort by start time
-  items.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  items.sort((a, b) => (a.__start as Date).getTime() - (b.__start as Date).getTime());
 
   // Assign columns for overlap
   type Active = { end: number; col: number };
@@ -249,8 +267,8 @@ function layoutDayEvents(dayEvents: (CalendarEvent & { color: string })[], day: 
   const positioned: (PositionedEvent & { col: number; cols: number })[] = [];
 
   items.forEach(ev => {
-    const startMs = new Date(ev.startDate).getTime();
-    const endMs = new Date(ev.endDate).getTime();
+    const startMs = (ev.__start as Date).getTime();
+    const endMs = (ev.__end as Date).getTime();
     // free columns whose end <= start
     for (let i = actives.length - 1; i >= 0; i--) {
       if (actives[i].end <= startMs) actives.splice(i, 1);
@@ -262,12 +280,14 @@ function layoutDayEvents(dayEvents: (CalendarEvent & { color: string })[], day: 
     actives.push({ end: endMs, col });
     actives.sort((a, b) => a.col - b.col);
     const cols = Math.max(1, actives.length);
+    const top = Math.max(0, (differenceInMinutes(ev.__start as Date, startBoundary) / ((HOURS_END - HOURS_START) * 60)) * 100);
+    const height = Math.max(2, (differenceInMinutes(ev.__end as Date, ev.__start as Date) / ((HOURS_END - HOURS_START) * 60)) * 100);
     positioned.push({
       ...(ev as any),
       col,
       cols,
-      top: Math.max(0, (differenceInMinutes(new Date(ev.startDate), startBoundary) / ((HOURS_END - HOURS_START) * 60)) * 100),
-      height: Math.max(2, (differenceInMinutes(new Date(ev.endDate), new Date(ev.startDate)) / ((HOURS_END - HOURS_START) * 60)) * 100),
+      top,
+      height,
       left: 0,
       width: 0,
       color: (ev as any).color,
@@ -326,8 +346,8 @@ const TimeGridBody: React.FC<{ days: Date[]; events: (CalendarEvent & { color: s
         {/* Day columns */}
         {days.map((day) => {
           const dayKey = day.toDateString();
-          const allDay = (events || []).filter(e => e.isAllDay && isSameDay(e.startDate, day));
-          const timed = layoutDayEvents((events || []).filter(e => isSameDay(e.startDate, day)), day);
+          const allDay = (events || []).filter(e => e.isAllDay && (isSameDay(e.startDate, day) || isSameDay(e.endDate, day)));
+          const timed = layoutDayEvents((events || []), day);
           return (
             <div key={dayKey} className="relative border-r border-gray-700">
               {/* All-day lane */}
@@ -340,7 +360,12 @@ const TimeGridBody: React.FC<{ days: Date[]; events: (CalendarEvent & { color: s
                       style={{ backgroundColor: (ev as any).color }}
                       onClick={() => onEventClick?.(ev)}
                       title={ev.title}
-                    >{ev.title}</button>
+                    >
+                      {ev.title}
+                      {!isSameDay(ev.startDate, ev.endDate) && (
+                        isSameDay(day, ev.startDate) ? ' (Start)' : (isSameDay(day, ev.endDate) ? ' (End)' : '')
+                      )}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -374,8 +399,16 @@ const TimeGridBody: React.FC<{ days: Date[]; events: (CalendarEvent & { color: s
                     onClick={() => onEventClick?.(ev)}
                     title={ev.title}
                   >
-                    <div className="font-medium truncate">{ev.title}</div>
-                    <div className="opacity-80 truncate">{format(ev.startDate, 'HH:mm')} – {format(ev.endDate, 'HH:mm')}</div>
+                    <div className="font-medium truncate">{ev.title} {ev.displayRole === 'start' ? '(Start)' : ev.displayRole === 'end' ? '(End)' : ''}</div>
+                    <div className="opacity-80 truncate">
+                      {ev.displayRole === 'end' ? (
+                        <>Ends {format(ev.endDate, 'HH:mm')}</>
+                      ) : ev.displayRole === 'start' ? (
+                        <>Starts {format(ev.startDate, 'HH:mm')}</>
+                      ) : (
+                        <>{format(ev.startDate, 'HH:mm')} – {format(ev.endDate, 'HH:mm')}</>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
