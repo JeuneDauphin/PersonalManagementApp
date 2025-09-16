@@ -49,3 +49,9 @@ Notes
 
 - If you see type errors, run `npm run typecheck` to check TypeScript without emitting.
 - If the dev server doesn’t start, ensure dev dependencies are installed (see step 1).
+
+Behavior: Multi-day events
+
+- In month view, events that start on one day and end on a later day are shown on their start day and end day only (not on the in-between days), labeled as “(Start)” and “(End)”.
+- In week/day time grid, multi-day timed events have two markers: a small “Starts HH:mm” marker on the start day and a small “Ends HH:mm” marker on the end day. All-day multi-day events appear in the all-day lane on both the start and end days.
+- In the sidebar event list and date shortcut, days are marked if they contain either a start or end of a multi-day event, and the list shows “(Start)”/“(End)” labels accordingly.

@@ -44,9 +44,11 @@ const DateShortcut: React.FC<DateShortcutProps> = ({
 
   // Check if a date has events
   const hasEvents = (date: Date) => {
-    return (events || []).some(event => {
-      const eventDate = new Date(event.startDate);
-      return isSameDay(eventDate, date);
+    return (events || []).some(evt => {
+      const eventStart = new Date(evt.startDate);
+      const eventEnd = new Date(evt.endDate);
+      const isMultiDay = !isSameDay(eventStart, eventEnd);
+      return isSameDay(eventStart, date) || (isMultiDay && isSameDay(eventEnd, date));
     });
   };
 
