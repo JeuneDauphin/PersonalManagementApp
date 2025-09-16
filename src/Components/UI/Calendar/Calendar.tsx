@@ -155,9 +155,15 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
     events.forEach(e => {
       const s = startOfDay(e.startDate);
       const eEnd = startOfDay(e.endDate);
-      for (let d = s; !isAfter(d, eEnd); d = addDays(d, 1)) {
-        const key = d.toDateString();
+      // Only display on the start and end dates; skip intermediate days
+      if (isSameDay(s, eEnd)) {
+        const key = s.toDateString();
         if (map.has(key)) map.get(key)!.push(e);
+      } else {
+        const startKey = s.toDateString();
+        const endKey = eEnd.toDateString();
+        if (map.has(startKey)) map.get(startKey)!.push(e);
+        if (map.has(endKey)) map.get(endKey)!.push(e);
       }
     });
     // sort each day by start time
