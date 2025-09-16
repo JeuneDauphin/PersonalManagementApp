@@ -19,6 +19,7 @@ interface CalendarProps {
 
 const HOURS_START = 0;
 const HOURS_END = 23;
+const TOTAL_HOURS = HOURS_END - HOURS_START + 1; // inclusive range (24 hours)
 
 function getEventColor(type: string): string {
   switch (type) {
@@ -348,8 +349,8 @@ function layoutDayEvents(allEvents: (CalendarEvent & { color: string })[], day: 
     actives.push({ end: endMs, col });
     actives.sort((a, b) => a.col - b.col);
     const cols = Math.max(1, actives.length);
-    const top = Math.max(0, (differenceInMinutes(ev.__start as Date, startBoundary) / ((HOURS_END - HOURS_START) * 60)) * 100);
-    const height = Math.max(2, (differenceInMinutes(ev.__end as Date, ev.__start as Date) / ((HOURS_END - HOURS_START) * 60)) * 100);
+  const top = Math.max(0, (differenceInMinutes(ev.__start as Date, startBoundary) / (TOTAL_HOURS * 60)) * 100);
+  const height = Math.max(2, (differenceInMinutes(ev.__end as Date, ev.__start as Date) / (TOTAL_HOURS * 60)) * 100);
     positioned.push({
       ...(ev as any),
       col,
@@ -392,7 +393,7 @@ const TimeGridBody: React.FC<{ days: Date[]; events: (CalendarEvent & { color: s
     const hours = Array.from({ length: HOURS_END - HOURS_START + 1 }, (_, i) => HOURS_START + i);
     const now = new Date();
     const showNow = days.some(d => isToday(d));
-    const nowTop = ((now.getHours() + now.getMinutes() / 60 - HOURS_START) / (HOURS_END - HOURS_START)) * 100;
+  const nowTop = ((now.getHours() + now.getMinutes() / 60 - HOURS_START) / TOTAL_HOURS) * 100;
 
     return (
       <div
@@ -400,13 +401,13 @@ const TimeGridBody: React.FC<{ days: Date[]; events: (CalendarEvent & { color: s
         style={{ gridTemplateColumns: `64px repeat(${days.length}, minmax(0, 1fr))` }}
       >
         {/* Time labels */}
-        <div className="border-r border-gray-700 relative">
-          {hours.map((h, idx) => (
+  <div className="border-r border-gray-700 relative">
+          {hours.map((h) => (
             <div
               key={h}
-              className={`relative h-12 md:h-9 text-[10px] md:text-xs text-gray-400${idx === 0 ? ' mt-2' : ''}`}
+              className="relative h-14 md:h-12 text-[10px] md:text-xs text-gray-400"
             >
-              <div className="absolute -top-2 right-2">{format(setHours(setMinutes(new Date(), 0), h), 'HH:mm')}</div>
+              <div className="absolute top-1/2 -translate-y-1/2 right-2">{format(setHours(setMinutes(new Date(), 0), h), 'HH:mm')}</div>
             </div>
           ))}
         </div>
@@ -415,29 +416,32 @@ const TimeGridBody: React.FC<{ days: Date[]; events: (CalendarEvent & { color: s
         {days.map((day) => {
           const dayKey = day.toDateString();
           const allDay = (events || []).filter(e => e.isAllDay && (isSameDay(e.startDate, day) || isSameDay(e.endDate, day)));
+          const hasAllDay = allDay.length > 0;
           const timed = layoutDayEvents((events || []), day);
           return (
             <div key={dayKey} className="relative border-r border-gray-700">
-              {/* All-day lane */}
-              <div className="h-8 border-b border-gray-700 px-1.5 py-1">
-                <div className="flex gap-1 overflow-hidden">
-                  {allDay.map(ev => (
-                    <button
-                      key={ev._id}
-              className="px-2 py-0.5 rounded text-[10px] text-white truncate cursor-pointer"
-                      style={{ backgroundColor: (ev as any).color }}
-                      onClick={() => onEventClick?.(ev)}
-                      title={ev.title}
-                    >{ev.title}</button>
-                  ))}
+              {/* All-day lane (render only if present) */}
+              {hasAllDay && (
+                <div className="h-8 border-b border-gray-700 px-1.5 py-1">
+                  <div className="flex gap-1 overflow-hidden">
+                    {allDay.map(ev => (
+                      <button
+                        key={ev._id}
+                        className="px-2 py-0.5 rounded text-[10px] text-white truncate cursor-pointer"
+                        style={{ backgroundColor: (ev as any).color }}
+                        onClick={() => onEventClick?.(ev)}
+                        title={ev.title}
+                      >{ev.title}</button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Hour grid */}
-              <div className="absolute inset-x-0 bottom-0 top-8">
+              <div className="absolute inset-x-0 bottom-0" style={{ top: hasAllDay ? '2rem' as any : 0 }}>
                 {/* hour lines */}
                 {hours.map((h, idx) => (
-                  <div key={h} className={`border-b border-gray-700 ${idx === 0 ? 'mt-2' : 'h-12 md:h-9'}`} />
+                  <div key={h} className={`border-b border-gray-700 h-14 md:h-12 ${idx === hours.length - 1 ? 'border-b-0' : ''}`} />
                 ))}
 
                 {/* now indicator */}
