@@ -13,6 +13,8 @@ export interface Task extends BaseEntity {
   description: string;
   priority: Priority;
   status: Status;
+  // Freeform label for task kind, e.g., "Homework" or "Sub-Project mission"
+  type?: string;
   dueDate: Date;
   projectId?: string;
   tags: string[];
