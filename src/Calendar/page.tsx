@@ -8,6 +8,7 @@ import EventCardPopup from '../Components/UI/Calendar/EventCardPopup';
 import { useEvents } from '../utils/hooks/hooks';
 import { CalendarEvent } from '../utils/interfaces/interfaces';
 import { apiService } from '../utils/api/Api';
+import Notification from '../Components/UI/Notification';
 import {
   startOfDay,
   endOfDay,
@@ -26,6 +27,9 @@ const CalendarPage: React.FC = () => {
   const [dayPopupDate, setDayPopupDate] = useState<Date | null>(null);
   const [startInEdit, setStartInEdit] = useState(false);
   const [calendarView, setCalendarView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'>('dayGridMonth');
+  const [notif, setNotif] = useState<{ open: boolean; type: 'success' | 'error' | 'info' | 'warning'; title: string; message: string }>(
+    { open: false, type: 'error', title: '', message: '' }
+  );
 
   // Determine the currently visible range based on the active calendar view
   const { rangeStart, rangeEnd, listTitle } = useMemo(() => {
@@ -68,11 +72,7 @@ const CalendarPage: React.FC = () => {
   }, [events, rangeStart, rangeEnd]);
 
   const handleEventClick = (event: CalendarEvent) => {
-    // Sync calendar/date shortcut selection to the event's start day
-    const eventDay = new Date(event.startDate);
-    setSelectedDate(eventDay);
-    setCalendarView('timeGridDay');
-    // Open the event details
+    // Open the event details popup without changing the current calendar view or selected date
     setSelectedEvent(event);
     setDayPopupDate(null);
     setStartInEdit(false);
@@ -111,7 +111,8 @@ const CalendarPage: React.FC = () => {
       setShowEventPopup(false);
       refresh();
     } catch (error) {
-      console.error('Failed to save event:', error);
+      const msg = error instanceof Error ? error.message : 'Failed to save event';
+      setNotif({ open: true, type: 'error', title: 'Save failed', message: msg });
     }
   };
 
@@ -160,6 +161,8 @@ const CalendarPage: React.FC = () => {
                   setShowEventPopup(true);
                 }}
                 onEventDelete={handleEventDelete}
+                rangeStart={rangeStart}
+                rangeEnd={rangeEnd}
               />
             </div>
           </div>
@@ -194,6 +197,15 @@ const CalendarPage: React.FC = () => {
           startInEdit={startInEdit}
         />
       )}
+
+      {/* Notification */}
+      <Notification
+        type={notif.type}
+        title={notif.title}
+        message={notif.message}
+        isOpen={notif.open}
+        onClose={() => setNotif(prev => ({ ...prev, open: false }))}
+      />
     </Layout>
   );
 };
