@@ -30,6 +30,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
     description: '',
     priority: 'medium' as Priority,
     status: 'pending' as Status,
+    type: '',
     dueDate: '',
     projectId: '',
     tags: [] as string[],
@@ -37,6 +38,9 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
     actualHours: 0,
     contacts: [] as string[],
   });
+  const presetTypes = ['Homework', 'Sub-Project mission'];
+  const [typeSelect, setTypeSelect] = useState<string>('');
+  const [customType, setCustomType] = useState<string>('');
   const [tagInput, setTagInput] = useState('');
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
@@ -49,6 +53,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         description: task.description,
         priority: task.priority,
         status: task.status,
+        type: task.type || '',
         dueDate: new Date(task.dueDate).toISOString().slice(0, 16),
         projectId: task.projectId || '',
         tags: task.tags || [],
@@ -56,6 +61,18 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         actualHours: task.actualHours || 0,
         contacts: task.contacts || [],
       });
+      // initialize type selector
+      const t = task.type || '';
+      if (t && presetTypes.includes(t)) {
+        setTypeSelect(t);
+        setCustomType('');
+      } else if (t) {
+        setTypeSelect('__custom__');
+        setCustomType(t);
+      } else {
+        setTypeSelect('');
+        setCustomType('');
+      }
       setIsEditing(!!startInEdit);
     } else {
       // New task
@@ -66,6 +83,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         description: '',
         priority: 'medium',
         status: 'pending',
+        type: '',
         dueDate: tomorrow.toISOString().slice(0, 16),
         projectId: '',
         tags: [],
@@ -73,6 +91,8 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         actualHours: 0,
         contacts: [],
       });
+      setTypeSelect('');
+      setCustomType('');
       setIsEditing(true);
     }
   }, [task, startInEdit]);
@@ -112,13 +132,23 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
   };
 
   const handleSave = () => {
-
+    // Compute final type
+    let finalType: string | undefined = undefined;
+    if (typeSelect === '__custom__') {
+      const t = customType.trim();
+      finalType = t.length ? t : undefined;
+    } else if (typeSelect) {
+      finalType = typeSelect;
+    } else if (formData.type?.trim()) {
+      finalType = formData.type.trim();
+    }
     const taskData: Task = {
       _id: task?._id || `temp-${Date.now()}`,
       title: formData.title,
       description: formData.description,
       priority: formData.priority,
       status: formData.status,
+      type: finalType,
       dueDate: new Date(formData.dueDate),
       projectId: formData.projectId || undefined,
       tags: formData.tags,
@@ -269,6 +299,42 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                   </select>
                 </div>
               </div>
+              {/* Type */}
+              <div>
+                <label className="block text-body text-gray-300 mb-2">Type</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <select
+                    value={typeSelect}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setTypeSelect(v);
+                      if (v !== '__custom__') {
+                        // sync to formData for completeness
+                        handleInputChange('type', v);
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select type</option>
+                    {presetTypes.map((pt) => (
+                      <option key={pt} value={pt}>{pt}</option>
+                    ))}
+                    <option value="__custom__">Custom…</option>
+                  </select>
+                  {typeSelect === '__custom__' && (
+                    <input
+                      type="text"
+                      value={customType}
+                      onChange={(e) => {
+                        setCustomType(e.target.value);
+                        handleInputChange('type', e.target.value);
+                      }}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter custom type"
+                    />
+                  )}
+                </div>
+              </div>
               {/* Due Date */}
               <div>
                 <label className="block text-body text-gray-300 mb-2">Due Date</label>
@@ -411,6 +477,13 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                     {task.status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </span>
                 </div>
+
+                {/* Type */}
+                {task.type && (
+                  <div className="flex items-center gap-2 text-body text-purple-300">
+                    <span className="px-2 py-0.5 rounded bg-purple-700/40 border border-purple-600 text-small">{task.type}</span>
+                  </div>
+                )}
 
                 {/* Description */}
                 {task.description && (
