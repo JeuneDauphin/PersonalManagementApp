@@ -50,7 +50,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [attemptedSubmit] = useState(false);
 
   useEffect(() => {
     if (task) {
