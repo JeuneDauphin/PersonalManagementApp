@@ -17,6 +17,10 @@ interface ButtonProps {
   icon?: React.ReactNode;
   className?: string;
   type?: 'button' | 'submit' | 'reset';
+  // When true, the button will blur after being clicked to remove focus ring highlight
+  autoBlurAfterClick?: boolean;
+  // Delay in ms before blurring the button after click
+  autoBlurDelayMs?: number;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -30,6 +34,8 @@ const Button: React.FC<ButtonProps> = ({
   icon,
   className = '',
   type = 'button',
+  autoBlurAfterClick = true,
+  autoBlurDelayMs = 100,
 }) => {
   // Get icon based on action
   const getActionIcon = () => {
@@ -112,7 +118,15 @@ const Button: React.FC<ButtonProps> = ({
     <button
       type={type}
       className={classes}
-      onClick={(e) => onClick(e)}
+      onClick={(e) => {
+        onClick(e);
+        if (autoBlurAfterClick) {
+          const target = e.currentTarget as HTMLButtonElement;
+          window.setTimeout(() => {
+            try { target.blur(); } catch { }
+          }, Math.max(0, autoBlurDelayMs));
+        }
+      }}
       disabled={disabled || loading}
     >
       {loading ? (

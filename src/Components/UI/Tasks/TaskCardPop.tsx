@@ -45,6 +45,9 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -110,9 +113,24 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
 
   if (!isOpen) return null;
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const validate = (data: typeof formData) => {
+    const nextErrors: Record<string, string> = {};
+    if (!data.title.trim()) nextErrors.title = 'Title is required';
+    return nextErrors;
   };
+
+  const isInvalid = React.useMemo(() => Object.keys(validate(formData)).length > 0, [formData]);
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      setErrors(validate(next));
+      return next;
+    });
+  };
+
+  const markTouched = (field: string) => setTouched(prev => ({ ...prev, [field]: true }));
+  const shouldShowError = (field: string) => (touched[field] || attemptedSubmit) && !!errors[field];
 
   const handleAddTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
@@ -253,9 +271,13 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                   type="text"
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  onBlur={() => markTouched('title')}
+                  className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('title') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
                   placeholder="Task title"
                 />
+                {shouldShowError('title') && (
+                  <p className="mt-1 text-xs text-red-400">{errors.title}</p>
+                )}
               </div>
 
               {/* Description */}
@@ -604,7 +626,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                   action="save"
                   onClick={handleSave}
                   variant="primary"
-                    disabled={!formData.title}
+                    className={isInvalid ? 'opacity-50 cursor-not-allowed' : ''}
                 />
               </>
             )}
