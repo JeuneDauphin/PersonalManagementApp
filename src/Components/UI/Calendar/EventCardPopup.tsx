@@ -5,6 +5,7 @@ import { CalendarEvent, Contact } from '../../../utils/interfaces/interfaces';
 import { EventType } from '../../../utils/types/types';
 import Button from '../Button';
 import { apiService } from '../../../utils/api/Api';
+import { addDays, addMonths, endOfMonth, endOfWeek, format as fmt, isSameDay, isSameMonth, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 
 interface EventCardPopupProps {
   event?: CalendarEvent | null;
@@ -45,6 +46,8 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [showStartCal, setShowStartCal] = useState(false);
+  const [showEndCal, setShowEndCal] = useState(false);
 
   useEffect(() => {
     if (event) {
@@ -148,12 +151,100 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
     });
   };
 
+  // Helpers for local ISO strings compatible with datetime-local inputs
+  const toIsoLocal = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const withDateFrom = (original: string, newDate: Date) => {
+    const base = new Date(original || Date.now());
+    const merged = new Date(newDate);
+    merged.setHours(base.getHours(), base.getMinutes(), 0, 0);
+    return toIsoLocal(merged);
+  };
+  const withTime = (original: string, timeHHmm: string) => {
+    const [hh, mm] = timeHHmm.split(':').map(Number);
+    const base = new Date(original || Date.now());
+    base.setHours(hh, mm, 0, 0);
+    return toIsoLocal(base);
+  };
+
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => {
-      const next = { ...prev, [field]: value };
+      let next = { ...prev, [field]: value } as typeof prev;
+      // If user moves start beyond current end, auto-bump end to keep it valid
+      if ((field === 'startDate' || field === 'endDate' || field === 'isAllDay') && next.startDate && next.endDate) {
+        const s = new Date(next.startDate);
+        const e = new Date(next.endDate);
+        if (!isNaN(s.getTime()) && !isNaN(e.getTime()) && e <= s) {
+          // Bump end by 1 hour for timed events, or 1 day for all-day
+          if (next.isAllDay) {
+            const bumped = new Date(s);
+            bumped.setDate(bumped.getDate() + 1);
+            next = { ...next, endDate: toIsoLocal(bumped) };
+          } else {
+            const bumped = new Date(s.getTime() + 60 * 60 * 1000);
+            next = { ...next, endDate: toIsoLocal(bumped) };
+          }
+        }
+      }
       setErrors(validate(next));
       return next;
     });
+  };
+
+  // Mini calendar month picker
+  const MiniCalendar: React.FC<{
+    value: Date;
+    onChange: (d: Date) => void;
+    onClose: () => void;
+    minDate?: Date;
+  }> = ({ value, onChange, onClose, minDate }) => {
+    const [cursor, setCursor] = useState<Date>(startOfMonth(value || new Date()));
+    const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 });
+    const end = endOfWeek(endOfMonth(cursor), { weekStartsOn: 1 });
+    const days: Date[] = [];
+    for (let d = start; d <= end; d = addDays(d, 1)) {
+      days.push(d);
+    }
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return (
+      <div className="absolute z-50 mt-2 bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-3 w-72">
+        <div className="flex items-center justify-between mb-2">
+          <button className="px-2 py-1 hover:bg-gray-700 rounded" onClick={() => setCursor(addMonths(cursor, -1))}>{'<'}</button>
+          <div className="text-white font-medium">{fmt(cursor, 'MMMM yyyy')}</div>
+          <button className="px-2 py-1 hover:bg-gray-700 rounded" onClick={() => setCursor(addMonths(cursor, 1))}>{'>'}</button>
+        </div>
+        <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-400 mb-1">
+          {weekdays.map((w) => (
+            <div key={w}>{w}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {days.map((d) => {
+            const disabled = minDate ? d < startOfDay(minDate) : false;
+            const inMonth = isSameMonth(d, cursor);
+            const selected = isSameDay(d, value);
+            return (
+              <button
+                key={d.toISOString()}
+                disabled={disabled}
+                onClick={() => {
+                  onChange(d);
+                  onClose();
+                }}
+                className={`h-8 rounded flex items-center justify-center ${
+                  selected
+                    ? 'bg-blue-600 text-white'
+                    : inMonth
+                      ? 'text-gray-200 hover:bg-gray-700'
+                      : 'text-gray-500'
+                } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+              >
+                {fmt(d, 'd')}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   const markTouched = (field: string) => setTouched(prev => ({ ...prev, [field]: true }));
@@ -276,30 +367,78 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
                 <label htmlFor="allDay" className="text-body text-gray-300">All day event</label>
               </div>
 
-              {/* Date and Time */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+              {/* Date and Time with mini calendars (no manual typing of dates) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+                {/* Start selector */}
+                <div className="relative">
                   <label className="block text-body text-gray-300 mb-2">Start</label>
-                  <input
-                    type={formData.isAllDay ? "date" : "datetime-local"}
-                    value={formData.isAllDay ? formData.startDate.split('T')[0] : formData.startDate}
-                    onChange={(e) => handleInputChange('startDate', e.target.value)}
-                    onBlur={() => markTouched('startDate')}
-                    className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('startDate') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
-                  />
+                  <div className="flex flex-col md:flex-row md:items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setShowStartCal(v => !v); setShowEndCal(false); }}
+                      className={`flex-1 min-w-0 px-3 py-2 bg-gray-700 border ${shouldShowError('startDate') ? 'border-red-500' : 'border-gray-600'} rounded-lg text-white text-left`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calendar size={16} />
+                        <span className="whitespace-nowrap">
+                          {fmt(new Date(formData.startDate), 'PP')}
+                        </span>
+                      </div>
+                    </button>
+                    {!formData.isAllDay && (
+                      <input
+                        type="time"
+                        value={fmt(new Date(formData.startDate), 'HH:mm')}
+                        onChange={(e) => handleInputChange('startDate', withTime(formData.startDate, e.target.value))}
+                        className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                      />
+                    )}
+                  </div>
+                  {showStartCal && (
+                    <MiniCalendar
+                      value={new Date(formData.startDate)}
+                      onChange={(d) => handleInputChange('startDate', withDateFrom(formData.startDate, d))}
+                      onClose={() => setShowStartCal(false)}
+                    />
+                  )}
                   {shouldShowError('startDate') && (
                     <p className="mt-1 text-xs text-red-400">{errors.startDate}</p>
                   )}
                 </div>
-                <div>
+
+                {/* End selector */}
+                <div className="relative">
                   <label className="block text-body text-gray-300 mb-2">End</label>
-                  <input
-                    type={formData.isAllDay ? "date" : "datetime-local"}
-                    value={formData.isAllDay ? formData.endDate.split('T')[0] : formData.endDate}
-                    onChange={(e) => handleInputChange('endDate', e.target.value)}
-                    onBlur={() => markTouched('endDate')}
-                    className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('endDate') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
-                  />
+                  <div className="flex flex-col md:flex-row md:items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setShowEndCal(v => !v); setShowStartCal(false); }}
+                      className={`flex-1 min-w-0 px-3 py-2 bg-gray-700 border ${shouldShowError('endDate') ? 'border-red-500' : 'border-gray-600'} rounded-lg text-white text-left`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calendar size={16} />
+                        <span className="whitespace-nowrap">
+                          {fmt(new Date(formData.endDate), 'PP')}
+                        </span>
+                      </div>
+                    </button>
+                    {!formData.isAllDay && (
+                      <input
+                        type="time"
+                        value={fmt(new Date(formData.endDate), 'HH:mm')}
+                        onChange={(e) => handleInputChange('endDate', withTime(formData.endDate, e.target.value))}
+                        className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                      />
+                    )}
+                  </div>
+                  {showEndCal && (
+                    <MiniCalendar
+                      value={new Date(formData.endDate)}
+                      onChange={(d) => handleInputChange('endDate', withDateFrom(formData.endDate, d))}
+                      onClose={() => setShowEndCal(false)}
+                      minDate={new Date(formData.startDate)}
+                    />
+                  )}
                   {shouldShowError('endDate') && (
                     <p className="mt-1 text-xs text-red-400">{errors.endDate}</p>
                   )}

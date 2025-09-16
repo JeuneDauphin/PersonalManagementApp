@@ -11,6 +11,9 @@ interface EventListsProps {
   onEventEdit?: (event: CalendarEvent) => void;
   onEventDelete?: (eventId: string) => void;
   showActions?: boolean;
+  // Optional range to clip display times (useful for day/week/month lists)
+  rangeStart?: Date;
+  rangeEnd?: Date;
 }
 
 const EventLists: React.FC<EventListsProps> = ({
@@ -20,6 +23,8 @@ const EventLists: React.FC<EventListsProps> = ({
   onEventEdit,
   onEventDelete,
   showActions = true,
+  rangeStart,
+  rangeEnd,
 }) => {
   const getEventTypeColor = (type: string) => {
     switch (type) {
@@ -52,6 +57,13 @@ const EventLists: React.FC<EventListsProps> = ({
     return `${hours}h ${mins > 0 ? `${mins}m` : ''}`;
   };
 
+  const clamp = (d: Date, min?: Date, max?: Date) => {
+    let t = new Date(d);
+    if (min && t < min) t = new Date(min);
+    if (max && t > max) t = new Date(max);
+    return t;
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -79,29 +91,24 @@ const EventLists: React.FC<EventListsProps> = ({
     );
   }
 
-  // Transform multi-day events into two entries (start and end) for visibility
-  type ListItem = CalendarEvent & { _listRole?: 'start' | 'end' | 'normal'; _listTime?: Date };
-  const expanded: ListItem[] = [];
-  (events || []).forEach(event => {
-    const eventStart = new Date(event.startDate);
-    const eventEnd = new Date(event.endDate);
-    const spansMultipleDays = eventStart.toDateString() !== eventEnd.toDateString();
-    if (spansMultipleDays) {
-      expanded.push({ ...(event as any), _listRole: 'start', _listTime: eventStart });
-      expanded.push({ ...(event as any), _listRole: 'end', _listTime: eventEnd });
-    } else {
-      expanded.push({ ...(event as any), _listRole: 'normal', _listTime: eventStart });
-    }
+  // Build display items: show each event once; optionally clip to provided range
+  type ListItem = CalendarEvent & { _displayStart: Date; _displayEnd: Date };
+  const items: ListItem[] = (events || []).map((event) => {
+    const s = new Date(event.startDate);
+    const e = new Date(event.endDate);
+    const displayStart = clamp(s, rangeStart, rangeEnd);
+    const displayEnd = clamp(e, rangeStart, rangeEnd);
+    return { ...(event as any), _displayStart: displayStart, _displayEnd: displayEnd };
   });
 
-  // Sort by the display time
-  const sortedEvents = expanded.sort((a, b) => (a._listTime as Date).getTime() - (b._listTime as Date).getTime());
+  // Sort by display start time
+  const sortedEvents = items.sort((a, b) => a._displayStart.getTime() - b._displayStart.getTime());
 
   return (
     <div className="space-y-2">
       {sortedEvents.map((event) => (
     <div
-          key={`${event._id}-${event._listRole || 'normal'}-${(event._listTime as Date)?.getTime?.() ?? ''}`}
+      key={`${event._id}-${(event as any)._displayStart?.getTime?.() ?? ''}`}
           className={`
             border border-gray-700 rounded-lg p-3
       hover:border-gray-600 transition-colors cursor-pointer
@@ -117,7 +124,7 @@ const EventLists: React.FC<EventListsProps> = ({
               {/* Title and time */}
               <div className="flex items-start justify-between mb-1">
                 <h4 className="text-body text-white font-medium truncate">
-                  {event.title} {event._listRole === 'start' ? '(Start)' : event._listRole === 'end' ? '(End)' : ''}
+                  {event.title}
                 </h4>
                 {/* actions moved to bottom-right */}
               </div>
@@ -129,15 +136,9 @@ const EventLists: React.FC<EventListsProps> = ({
                   'All day'
                 ) : (
                   <>
-                      {event._listRole === 'end'
-                        ? <>Ends {formatTime(event.endDate)}</>
-                        : event._listRole === 'start'
-                          ? <>Starts {formatTime(event.startDate)}</>
-                          : <>
-                            {formatTime(event.startDate)} - {formatTime(event.endDate)}
-                          </>}
+                    {formatTime((event as any)._displayStart)} - {formatTime((event as any)._displayEnd)}
                     <span className="mx-1">•</span>
-                    {formatDuration(event.startDate, event.endDate)}
+                    {formatDuration((event as any)._displayStart, (event as any)._displayEnd)}
                   </>
                 )}
               </div>
