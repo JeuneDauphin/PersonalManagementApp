@@ -14,6 +14,7 @@ interface TaskCardPopupProps {
   onDelete?: () => void;
   // If true and a task is provided, open directly in edit mode
   startInEdit?: boolean;
+  defaultProjectId?: string; // pre-associate new task with a project
 }
 
 const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
@@ -23,6 +24,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
   onSave,
   onDelete,
   startInEdit,
+  defaultProjectId,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -92,7 +94,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         status: 'pending',
         type: '',
         dueDate: tomorrow.toISOString().slice(0, 16),
-        projectId: '',
+        projectId: defaultProjectId || '',
         lessonId: '',
         tags: [],
         estimatedHours: 1,
@@ -103,7 +105,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
       setCustomType('');
       setIsEditing(true);
     }
-  }, [task, startInEdit]);
+  }, [task, startInEdit, defaultProjectId]);
 
   useEffect(() => {
     if (!isOpen) return;
