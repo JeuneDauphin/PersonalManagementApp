@@ -1,6 +1,8 @@
 // Lesson card popup modal for viewing/editing lesson details
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, MapPin, User, FileText } from 'lucide-react';
+import MiniCalendar from '../Calendar/MiniCalendar';
+import { format as fmt } from 'date-fns';
 import { Lesson } from '../../../utils/interfaces/interfaces';
 import { LessonType } from '../../../utils/types/types';
 import Button from '../Button';
@@ -37,6 +39,7 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
     materials: [] as string[],
     completed: false,
   });
+  const [showDateCal, setShowDateCal] = useState(false);
   const [materialInput, setMaterialInput] = useState('');
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -260,20 +263,31 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
                 </select>
               </div>
 
-              {/* Date, Time, and Duration */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
+              {/* Date (MiniCalendar), Time, and Duration */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative">
+                <div className="relative">
                   <label className="block text-body text-gray-300 mb-2">Date *</label>
-                  <input
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => handleInputChange('date', e.target.value)}
-                    onBlur={() => markTouched('date')}
-                    className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('date') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
-                  />
-                  {shouldShowError('date') && (
-                    <p className="mt-1 text-xs text-red-400">{errors.date}</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowDateCal(v => !v)}
+                    className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-left text-white ${shouldShowError('date') ? 'border-red-500' : 'border-gray-600'}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Calendar size={16} />
+                      <span>{formData.date ? fmt(new Date(formData.date), 'PP') : 'Select date'}</span>
+                    </div>
+                  </button>
+                  {showDateCal && formData.date && (
+                    <MiniCalendar
+                      value={new Date(formData.date)}
+                      onChange={(d) => {
+                        const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+                        handleInputChange('date', iso);
+                      }}
+                      onClose={() => setShowDateCal(false)}
+                    />
                   )}
+                  {shouldShowError('date') && (<p className="mt-1 text-xs text-red-400">{errors.date}</p>)}
                 </div>
 
                 <div>

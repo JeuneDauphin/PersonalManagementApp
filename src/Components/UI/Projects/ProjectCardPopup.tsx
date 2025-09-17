@@ -1,6 +1,8 @@
 // Project card popup modal for viewing/editing project details
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Calendar, GitBranch, Link, Tag, Users } from 'lucide-react';
+import MiniCalendar from '../Calendar/MiniCalendar';
+import { format as fmt } from 'date-fns';
 import { Project, Contact } from '../../../utils/interfaces/interfaces';
 import { Priority, ProjectStatus } from '../../../utils/types/types';
 import Button from '../Button';
@@ -30,8 +32,8 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
     description: '',
     status: 'planning' as ProjectStatus,
     priority: 'medium' as Priority,
-    startDate: '',
-    endDate: '',
+    startDate: '', // ISO local yyyy-MM-ddTHH:mm
+    endDate: '',   // ISO local yyyy-MM-ddTHH:mm
     progress: 0,
     tags: [] as string[],
     githubLink: '',
@@ -40,6 +42,8 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
     tasks: [] as string[],
     collaborators: [] as string[],
   });
+  const [showStartCal, setShowStartCal] = useState(false);
+  const [showEndCal, setShowEndCal] = useState(false);
   const [tagInput, setTagInput] = useState('');
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
@@ -55,8 +59,8 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
         description: project.description,
         status: project.status,
         priority: project.priority,
-        startDate: new Date(project.startDate).toISOString().slice(0, 10),
-        endDate: project.endDate ? new Date(project.endDate).toISOString().slice(0, 10) : '',
+        startDate: new Date(project.startDate).toISOString().slice(0, 16),
+        endDate: project.endDate ? new Date(project.endDate).toISOString().slice(0, 16) : '',
         progress: project.progress,
         tags: project.tags || [],
         githubLink: project.githubLink || '',
@@ -68,14 +72,16 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
       setIsEditing(!!startInEdit);
     } else {
       // New project
-      const today = new Date().toISOString().slice(0, 10);
+      const now = new Date();
+      const end = new Date(now.getTime() + 60 * 60 * 1000);
+      const toLocal = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
       setFormData({
         name: '',
         description: '',
         status: 'planning',
         priority: 'medium',
-        startDate: today,
-        endDate: '',
+        startDate: toLocal(now),
+        endDate: toLocal(end),
         progress: 0,
         tags: [],
         githubLink: '',
@@ -117,11 +123,11 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
     const nextErrors: Record<string, string> = {};
     if (!data.name.trim()) nextErrors.name = 'Project name is required';
     if (!data.description.trim()) nextErrors.description = 'Description is required';
-    if (!data.startDate) nextErrors.startDate = 'Start date is required';
-    if (data.endDate && data.startDate) {
+    if (!data.startDate) nextErrors.startDate = 'Start date/time is required';
+    if (data.startDate && data.endDate) {
       const s = new Date(data.startDate);
       const e = new Date(data.endDate);
-      if (e < s) nextErrors.endDate = 'End cannot be before start';
+      if (e <= s) nextErrors.endDate = 'End must be after start';
     }
     return nextErrors;
   };
@@ -319,34 +325,93 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                 </div>
               </div>
 
-              {/* Dates */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-body text-gray-300 mb-2">Start Date *</label>
-                  <input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => handleInputChange('startDate', e.target.value)}
-                    onBlur={() => markTouched('startDate')}
-                    className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('startDate') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
-                  />
-                  {shouldShowError('startDate') && (
-                    <p className="mt-1 text-xs text-red-400">{errors.startDate}</p>
+              {/* Dates with Mini Calendars and time inputs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+                {/* Start */}
+                <div className="relative">
+                  <label className="block text-body text-gray-300 mb-2">Start *</label>
+                  <div className="flex flex-col md:flex-row md:items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setShowStartCal(v => !v); setShowEndCal(false); }}
+                      className={`flex-1 min-w-0 px-3 py-2 bg-gray-700 border ${shouldShowError('startDate') ? 'border-red-500' : 'border-gray-600'} rounded-lg text-white text-left`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calendar size={16} />
+                        <span className="whitespace-nowrap">{fmt(new Date(formData.startDate), 'PP')}</span>
+                      </div>
+                    </button>
+                    <input
+                      type="time"
+                      value={formData.startDate ? fmt(new Date(formData.startDate), 'HH:mm') : ''}
+                      onChange={(e) => {
+                        const [hh, mm] = e.target.value.split(':').map(Number);
+                        const d = new Date(formData.startDate || new Date());
+                        d.setHours(hh, mm, 0, 0);
+                        const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                        handleInputChange('startDate', iso);
+                      }}
+                      className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    />
+                  </div>
+                  {showStartCal && formData.startDate && (
+                    <MiniCalendar
+                      value={new Date(formData.startDate)}
+                      onChange={(d) => {
+                        const base = new Date(formData.startDate);
+                        d.setHours(base.getHours(), base.getMinutes(), 0, 0);
+                        const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                        handleInputChange('startDate', iso);
+                      }}
+                      onClose={() => setShowStartCal(false)}
+                    />
                   )}
+                  {shouldShowError('startDate') && (<p className="mt-1 text-xs text-red-400">{errors.startDate}</p>)}
                 </div>
-
-                <div>
-                  <label className="block text-body text-gray-300 mb-2">End Date</label>
-                  <input
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) => handleInputChange('endDate', e.target.value)}
-                    onBlur={() => markTouched('endDate')}
-                    className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('endDate') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
-                  />
-                  {shouldShowError('endDate') && (
-                    <p className="mt-1 text-xs text-red-400">{errors.endDate}</p>
+                {/* End */}
+                <div className="relative">
+                  <label className="block text-body text-gray-300 mb-2">End</label>
+                  <div className="flex flex-col md:flex-row md:items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setShowEndCal(v => !v); setShowStartCal(false); }}
+                      className={`flex-1 min-w-0 px-3 py-2 bg-gray-700 border ${shouldShowError('endDate') ? 'border-red-500' : 'border-gray-600'} rounded-lg text-white text-left`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calendar size={16} />
+                        <span className="whitespace-nowrap">{formData.endDate ? fmt(new Date(formData.endDate), 'PP') : 'No end date'}</span>
+                      </div>
+                    </button>
+                    <input
+                      type="time"
+                      disabled={!formData.endDate}
+                      value={formData.endDate ? fmt(new Date(formData.endDate), 'HH:mm') : ''}
+                      onChange={(e) => {
+                        if (!formData.endDate) return;
+                        const [hh, mm] = e.target.value.split(':').map(Number);
+                        const d = new Date(formData.endDate);
+                        d.setHours(hh, mm, 0, 0);
+                        const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                        handleInputChange('endDate', iso);
+                      }}
+                      className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    />
+                  </div>
+                  {showEndCal && (
+                    <MiniCalendar
+                      value={formData.endDate ? new Date(formData.endDate) : new Date(formData.startDate || Date.now())}
+                      onChange={(d) => {
+                        if (!formData.startDate) return;
+                        const base = formData.endDate ? new Date(formData.endDate) : new Date(formData.startDate);
+                        d.setHours(base.getHours(), base.getMinutes(), 0, 0);
+                        const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                        handleInputChange('endDate', iso);
+                      }}
+                      onClose={() => setShowEndCal(false)}
+                      minDate={formData.startDate ? new Date(formData.startDate) : undefined}
+                    />
                   )}
+                  {shouldShowError('endDate') && (<p className="mt-1 text-xs text-red-400">{errors.endDate}</p>)}
                 </div>
               </div>
 
