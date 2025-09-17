@@ -1,14 +1,15 @@
 // Project detail page: view and edit a single project (replaces popup UX)
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Layout from '../../Components/Layout/Layout';
 import Button from '../../Components/UI/Button';
 import { Calendar, GitBranch, Link, Tag } from 'lucide-react';
 import { apiService } from '../../utils/api/Api';
 import TaskCardPopup from '../../Components/UI/Tasks/TaskCardPop';
+import ContactCardPopUp from '../../Components/UI/Contacts/ContactCardPopUp';
 import TaskLists from '../../Components/UI/Tasks/TaskLists';
 import type { Task } from '../../utils/interfaces/interfaces';
-import type { Project } from '../../utils/interfaces/interfaces';
+import type { Project, Contact } from '../../utils/interfaces/interfaces';
 import type { Priority, ProjectStatus } from '../../utils/types/types';
 
 const ProjectDetailPage: React.FC = () => {
@@ -23,6 +24,8 @@ const ProjectDetailPage: React.FC = () => {
 	const [tasksLoading, setTasksLoading] = useState<boolean>(false);
 	const [showTaskPopup, setShowTaskPopup] = useState(false);
 	const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+	const [showContactPopup, setShowContactPopup] = useState(false);
+	const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +47,46 @@ const ProjectDetailPage: React.FC = () => {
 		collaborators: [] as string[],
 	});
 	const [tagInput, setTagInput] = useState('');
+	// Collaborators editing state
+	const [contacts, setContacts] = useState<Contact[]>([]);
+	const [contactsLoading, setContactsLoading] = useState(false);
+	const [contactSearch, setContactSearch] = useState('');
+
+	// Load contacts when entering edit mode OR when viewing collaborators in view mode
+	useEffect(() => {
+		if (!isEditing && !(project?.collaborators?.length)) return;
+		let ignore = false;
+		setContactsLoading(true);
+		apiService.getContacts()
+			.then(data => { if (!ignore) setContacts(data); })
+			.catch(() => { /* ignore */ })
+			.finally(() => { if (!ignore) setContactsLoading(false); });
+		return () => { ignore = true; };
+	}, [isEditing, project?.collaborators]);
+
+	const filteredContacts = useMemo(() => {
+		const term = contactSearch.trim().toLowerCase();
+		if (!term) return contacts;
+		return contacts.filter(c =>
+			c.firstName.toLowerCase().includes(term) ||
+			c.lastName.toLowerCase().includes(term) ||
+			(c.email?.toLowerCase().includes(term) ?? false)
+		);
+	}, [contacts, contactSearch]);
+
+	const toggleCollaborator = (id: string) => {
+		setFormData(prev => ({
+			...prev,
+			collaborators: prev.collaborators.includes(id)
+				? prev.collaborators.filter(c => c !== id)
+				: [...prev.collaborators, id]
+		}));
+	};
+
+	const getContactLabel = (id: string) => {
+		const c = contacts.find(x => x._id === id);
+		return c ? `${c.firstName} ${c.lastName}`.trim() : id;
+	};
 
 	// Fetch project
 	useEffect(() => {
@@ -460,6 +503,52 @@ const ProjectDetailPage: React.FC = () => {
 									)}
 								</div>
 
+							{/* Collaborators */}
+							<div>
+								<label className="block text-sm text-gray-300 mb-2">Collaborators</label>
+								<div className="space-y-2">
+									<input
+										type="text"
+										value={contactSearch}
+										onChange={(e) => setContactSearch(e.target.value)}
+										placeholder="Search contacts"
+										className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+									/>
+									<div className="max-h-48 overflow-y-auto border border-gray-700 rounded-lg divide-y divide-gray-700 bg-gray-750">
+										{contactsLoading && (
+											<div className="p-3 text-small text-gray-400">Loading contacts...</div>
+										)}
+										{!contactsLoading && filteredContacts.length === 0 && (
+											<div className="p-3 text-small text-gray-500">No contacts found</div>
+										)}
+										{!contactsLoading && filteredContacts.map(c => {
+											const selected = formData.collaborators.includes(c._id);
+											return (
+												<button
+													key={c._id}
+													type="button"
+													onClick={() => toggleCollaborator(c._id)}
+													className={`w-full flex items-center justify-between px-3 py-2 text-left text-small hover:bg-gray-700 transition ${selected ? 'bg-gray-700' : ''}`}
+												>
+													<span className="text-gray-200">{c.firstName} {c.lastName}</span>
+													{selected && <span className="text-blue-400 text-xs">Selected</span>}
+												</button>
+											);
+										})}
+									</div>
+									{formData.collaborators.length > 0 && (
+										<div className="flex flex-wrap gap-2 mt-1">
+											{formData.collaborators.map(cid => (
+												<span key={cid} className="px-2 py-1 bg-blue-700/40 text-blue-300 text-small rounded flex items-center gap-1">
+													{getContactLabel(cid)}
+													<button onClick={() => toggleCollaborator(cid)} className="text-blue-300 hover:text-white">×</button>
+												</span>
+											))}
+										</div>
+									)}
+								</div>
+							</div>
+
 								{/* Actions */}
 								<div className="flex items-center justify-end gap-2">
 									<Button text="Cancel" variant="outline" onClick={() => setIsEditing(false)} />
@@ -576,6 +665,29 @@ const ProjectDetailPage: React.FC = () => {
 										</div>
 									</div>
 								)}
+
+								{/* Collaborators detailed list (view mode) */}
+								{!isEditing && project?.collaborators && project.collaborators.length > 0 && (
+									<div className="bg-gray-800 rounded-lg p-4">
+										<h3 className="text-body font-medium text-gray-300 mb-3">Collaborators</h3>
+										<div className="flex flex-wrap gap-2">
+											{project.collaborators.map(cid => {
+												const c = contacts.find(x => x._id === cid);
+												const label = c ? `${c.firstName} ${c.lastName}`.trim() : cid;
+												return (
+													<button
+														key={cid}
+														onClick={() => { const contactObj = contacts.find(x => x._id === cid) || null; setSelectedContact(contactObj); setShowContactPopup(true); }}
+														className="px-3 py-1 rounded-full bg-blue-700/30 hover:bg-blue-600/40 text-blue-200 text-small transition"
+														type="button"
+													>
+														{label}
+													</button>
+												);
+											})}
+										</div>
+									</div>
+								)}
 							</div>
 						)}
 
@@ -645,6 +757,15 @@ const ProjectDetailPage: React.FC = () => {
 					defaultProjectId={project?._id}
 				/>
 			)}
+            {/* Contact Popup */}
+            {showContactPopup && (
+                <ContactCardPopUp
+                    isOpen={showContactPopup}
+                    contact={selectedContact || undefined}
+                    onClose={() => { setShowContactPopup(false); setSelectedContact(null); }}
+                    startInEdit={false}
+                />
+            )}
 		</Layout>
 	);
 };
