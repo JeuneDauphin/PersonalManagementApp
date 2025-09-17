@@ -2,7 +2,7 @@
 // Contact card component displaying contact details in a card format
 import React from 'react';
 import { Contact } from '../../../utils/interfaces/interfaces';
-import { User, Mail, Phone, Building, Briefcase, Github, Linkedin, Twitter, School, Users } from 'lucide-react';
+import { User, Building, Briefcase, School, Users } from 'lucide-react';
 import Button from '../Button';
 
 interface ContactCardProps {
@@ -44,10 +44,7 @@ const ContactCard: React.FC<ContactCardProps> = ({
     }
   };
 
-  const getSocialCount = () => {
-    if (!contact.socialLinks) return 0;
-    return Object.values(contact.socialLinks).filter(Boolean).length;
-  };
+  // Compact card: only avatar, name, type badge.
 
   return (
   <div
@@ -83,103 +80,7 @@ const ContactCard: React.FC<ContactCardProps> = ({
   {/* actions moved to bottom-right */}
       </div>
 
-      {/* Contact Information */}
-      <div className="space-y-2 mb-3">
-        {contact.email && (
-          <div className="flex items-center gap-2 text-small text-gray-400">
-            <Mail size={12} />
-            <span className="truncate">{contact.email}</span>
-          </div>
-        )}
-
-        {contact.phone && (
-          <div className="flex items-center gap-2 text-small text-gray-400">
-            <Phone size={12} />
-            <span>{contact.phone}</span>
-          </div>
-        )}
-
-        {contact.company && (
-          <div className="flex items-center gap-2 text-small text-gray-400">
-            <Building size={12} />
-            <span className="truncate">{contact.company}</span>
-          </div>
-        )}
-
-        {contact.position && (
-          <div className="flex items-center gap-2 text-small text-gray-400">
-            <Briefcase size={12} />
-            <span className="truncate">{contact.position}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Notes */}
-      {contact.notes && (
-        <div className="mb-3">
-          <p className="text-small text-gray-400 line-clamp-2">
-            {contact.notes}
-          </p>
-        </div>
-      )}
-
-      {/* Social Links */}
-      {contact.socialLinks && getSocialCount() > 0 && (
-        <div className="mb-3">
-          <div className="flex items-center gap-2">
-            {contact.socialLinks.github && (
-              <a
-                href={contact.socialLinks.github}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded text-gray-400 hover:text-white transition-colors"
-              >
-                <Github size={12} />
-              </a>
-            )}
-            {contact.socialLinks.linkedin && (
-              <a
-                href={contact.socialLinks.linkedin}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="p-1.5 bg-gray-700 hover:bg-blue-600 rounded text-gray-400 hover:text-white transition-colors"
-              >
-                <Linkedin size={12} />
-              </a>
-            )}
-            {contact.socialLinks.twitter && (
-              <a
-                href={contact.socialLinks.twitter}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="p-1.5 bg-gray-700 hover:bg-blue-400 rounded text-gray-400 hover:text-white transition-colors"
-              >
-                <Twitter size={12} />
-              </a>
-            )}
-            {getSocialCount() > 3 && (
-              <div className="p-1.5 bg-gray-700 rounded text-gray-400 text-xs">
-                +{getSocialCount() - 3}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Footer - Metadata */}
-      <div className="flex items-center justify-between pt-3 border-t border-gray-700 text-xs text-gray-500">
-        <span>
-          Added {new Date(contact.createdAt).toLocaleDateString()}
-        </span>
-        {getSocialCount() > 0 && (
-          <div className="flex items-center gap-1">
-            <span>{getSocialCount()} social link{getSocialCount() !== 1 ? 's' : ''}</span>
-          </div>
-        )}
-      </div>
+      {/* Compact card intentionally omits email, phone, company, position, notes, social links, and metadata */}
 
       {showActions && (
         <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
