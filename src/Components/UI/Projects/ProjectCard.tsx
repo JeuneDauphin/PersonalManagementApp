@@ -1,8 +1,10 @@
 // Project card component displaying project details in a card format
-import React from 'react';
-import { Project } from '../../../utils/interfaces/interfaces';
+import React, { useState, useEffect } from 'react';
+import { Project, Task } from '../../../utils/interfaces/interfaces';
 import { Calendar, Users, GitBranch, Link, Clock, CheckCircle, Pause, Play, AlertTriangle, X } from 'lucide-react';
 import Button from '../Button';
+import { apiService } from '../../../utils/api/Api';
+import TaskCardPopup from '../Tasks/TaskCardPop';
 
 interface ProjectCardProps {
   project: Project;
@@ -19,6 +21,62 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   onDelete,
   showActions = true,
 }) => {
+  const [showTaskActions, setShowTaskActions] = useState(false);
+  const [unassignedTasks, setUnassignedTasks] = useState<Task[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [selectedAssignTaskId, setSelectedAssignTaskId] = useState('');
+  const [showTaskPopup, setShowTaskPopup] = useState(false);
+  const [tempTask, setTempTask] = useState<Task | null>(null);
+
+  const loadUnassigned = async () => {
+    setLoadingTasks(true);
+    try {
+      const all = await apiService.getTasks();
+      setUnassignedTasks(all.filter((t: any) => !(t as any).project && !(t as any).projectId));
+    } catch (e) {
+      // ignore
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showTaskActions) {
+      loadUnassigned();
+    }
+  }, [showTaskActions]);
+
+  const handleAssign = async () => {
+    if (!selectedAssignTaskId) return;
+    try {
+      setAssigning(true);
+      await apiService.updateTask(selectedAssignTaskId, { projectId: project._id } as any);
+      setSelectedAssignTaskId('');
+      await loadUnassigned();
+    } catch (e) {
+      // ignore
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const handleTaskSave = async (task: Task) => {
+    try {
+      if (task._id.startsWith('temp-')) {
+        const { _id, createdAt, updatedAt, ...data } = task as any;
+        await apiService.createTask({ ...data, projectId: project._id } as any);
+      } else {
+        const { _id, createdAt, updatedAt, ...data } = task as any;
+        await apiService.updateTask(task._id, data as any);
+      }
+      setShowTaskPopup(false);
+      setTempTask(null);
+      await loadUnassigned();
+    } catch (e) {
+      // ignore
+    }
+  };
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'planning': return 'bg-gray-500';
@@ -192,28 +250,87 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       </div>
 
       {showActions && (
-        <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            action="edit"
-            onClick={(e) => {
-              e?.stopPropagation();
-              onEdit?.(project);
-            }}
-            variant="ghost"
-            size="sm"
-            text=""
-          />
-          <Button
-            action="delete"
-            onClick={(e) => {
-              e?.stopPropagation();
-              onDelete?.(project._id);
-            }}
-            variant="ghost"
-            size="sm"
-            text=""
-          />
-        </div>
+        <>
+          <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowTaskActions(v => !v); }}
+              className="p-1 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition"
+              aria-label="Task actions"
+              type="button"
+            >
+              {showTaskActions ? <span className="text-xs font-bold">×</span> : <span className="text-xs font-bold">＋</span>}
+            </button>
+            <Button
+              action="edit"
+              onClick={(e) => {
+                e?.stopPropagation();
+                onEdit?.(project);
+              }}
+              variant="ghost"
+              size="sm"
+              text=""
+            />
+            <Button
+              action="delete"
+              onClick={(e) => {
+                e?.stopPropagation();
+                onDelete?.(project._id);
+              }}
+              variant="ghost"
+              size="sm"
+              text=""
+            />
+          </div>
+          {showTaskActions && (
+            <div
+              className="absolute top-full right-0 mt-2 w-64 bg-gray-900 border border-gray-700 rounded-lg shadow-lg p-3 z-20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-gray-400">Task Actions</span>
+                <button className="text-gray-500 hover:text-gray-300" onClick={() => setShowTaskActions(false)}>×</button>
+              </div>
+              <div className="space-y-3">
+                <Button
+                  text="Create Task"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setTempTask({ _id: `temp-${Date.now()}`, title: '', description: '', status: 'pending', priority: 'medium', dueDate: undefined, project: undefined } as any); setShowTaskPopup(true); }}
+                />
+                <div className="space-y-1">
+                  <select
+                    value={selectedAssignTaskId}
+                    onChange={(e) => setSelectedAssignTaskId(e.target.value)}
+                    className="w-full px-2 py-1 bg-gray-800 border border-gray-600 rounded text-xs text-gray-200"
+                  >
+                    <option value="">Assign existing…</option>
+                    {loadingTasks && <option>Loading…</option>}
+                    {!loadingTasks && unassignedTasks.map(t => (
+                      <option key={t._id} value={t._id}>{t.title}</option>
+                    ))}
+                  </select>
+                  <Button
+                    text={assigning ? 'Assigning…' : 'Assign'}
+                    variant="primary"
+                    size="sm"
+                    onClick={handleAssign}
+                    disabled={!selectedAssignTaskId || assigning}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+      {showTaskPopup && (
+        <TaskCardPopup
+          isOpen={showTaskPopup}
+          onClose={() => { setShowTaskPopup(false); setTempTask(null); }}
+          task={tempTask as any}
+          onSave={handleTaskSave as any}
+          startInEdit={true}
+          defaultProjectId={project._id}
+        />
       )}
     </div>
   );

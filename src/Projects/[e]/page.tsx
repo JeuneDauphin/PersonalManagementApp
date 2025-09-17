@@ -5,6 +5,9 @@ import Layout from '../../Components/Layout/Layout';
 import Button from '../../Components/UI/Button';
 import { Calendar, GitBranch, Link, Tag } from 'lucide-react';
 import { apiService } from '../../utils/api/Api';
+import TaskCardPopup from '../../Components/UI/Tasks/TaskCardPop';
+import TaskLists from '../../Components/UI/Tasks/TaskLists';
+import type { Task } from '../../utils/interfaces/interfaces';
 import type { Project } from '../../utils/interfaces/interfaces';
 import type { Priority, ProjectStatus } from '../../utils/types/types';
 
@@ -13,6 +16,13 @@ const ProjectDetailPage: React.FC = () => {
 	const { id } = useParams<{ id: string }>();
 
 	const [project, setProject] = useState<Project | null>(null);
+	const [tasks, setTasks] = useState<Task[]>([]);
+	const [unassignedTasks, setUnassignedTasks] = useState<Task[]>([]);
+	const [assigning, setAssigning] = useState(false);
+	const [selectedAssignTaskId, setSelectedAssignTaskId] = useState('');
+	const [tasksLoading, setTasksLoading] = useState<boolean>(false);
+	const [showTaskPopup, setShowTaskPopup] = useState(false);
+	const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +57,6 @@ const ProjectDetailPage: React.FC = () => {
 				setLoading(true);
 				const data = await apiService.getProject(id);
 				setProject(data);
-				// hydrate form
 				setFormData({
 					name: data.name,
 					description: data.description,
@@ -64,14 +73,69 @@ const ProjectDetailPage: React.FC = () => {
 					collaborators: data.collaborators || [],
 				});
 				setError(null);
+				// fetch tasks separately (filter by projectId)
+				setTasksLoading(true);
+				try {
+					const all = await apiService.getTasks();
+					const byProject = all.filter(t => (t as any).projectId === data._id || (t as any).project === data._id);
+					setTasks(byProject);
+					setUnassignedTasks(all.filter(t => !(t as any).projectId && !(t as any).project));
+				} finally {
+					setTasksLoading(false);
+				}
 			} catch (e) {
 				setError(e instanceof Error ? e.message : 'Failed to load project');
 			} finally {
-                setLoading(false);
+				setLoading(false);
 			}
 		};
 		run();
 	}, [id]);
+
+	const refreshTasks = async () => {
+		if (!project) return;
+		setTasksLoading(true);
+		try {
+			const all = await apiService.getTasks();
+			setTasks(all.filter(t => (t as any).projectId === project._id || (t as any).project === project._id));
+			setUnassignedTasks(all.filter(t => !(t as any).projectId && !(t as any).project));
+			await recomputeAndSyncProgress(all);
+		} finally {
+			setTasksLoading(false);
+		}
+	};
+
+	// Recompute project progress based on tasks (completed / total * 100)
+	const recomputeAndSyncProgress = async (allTasks?: Task[]) => {
+		if (!project) return;
+		const relevant = (allTasks || tasks).filter(t => (t as any).projectId === project._id || (t as any).project === project._id);
+		const total = relevant.length;
+		const completed = relevant.filter(t => t.status === 'completed').length;
+		const nextProgress = total === 0 ? 0 : Math.round((completed / total) * 100);
+		if (nextProgress !== project.progress) {
+			// Optimistic UI update
+			setProject(prev => prev ? { ...prev, progress: nextProgress, status: prev.status === 'completed' || nextProgress < 100 ? prev.status : 'completed' } : prev);
+			try {
+				await apiService.updateProject(project._id, { progress: nextProgress, ...(nextProgress === 100 ? { status: 'completed' } : {}) });
+			} catch (e) {
+				console.error('Failed to sync project progress', e);
+			}
+		}
+	};
+
+	const handleAssignTask = async () => {
+		if (!selectedAssignTaskId || !project) return;
+		try {
+			setAssigning(true);
+			await apiService.updateTask(selectedAssignTaskId, { projectId: project._id } as any);
+			setSelectedAssignTaskId('');
+			await refreshTasks();
+		} catch (e) {
+			console.error('Failed to assign task', e);
+		} finally {
+			setAssigning(false);
+		}
+	};
 
 	const handleInputChange = (field: string, value: any) => {
 		setFormData(prev => ({ ...prev, [field]: value }));
@@ -123,6 +187,46 @@ const ProjectDetailPage: React.FC = () => {
 			navigate('/projects');
 		} catch (e) {
 			setError(e instanceof Error ? e.message : 'Failed to delete project');
+		}
+	};
+
+	const handleAddTask = () => {
+		setSelectedTask(null);
+		setShowTaskPopup(true);
+	};
+
+	const handleTaskSave = async (task: Task) => {
+		try {
+			if (task._id.startsWith('temp-')) {
+				const { _id, createdAt, updatedAt, ...taskData } = task as any;
+				await apiService.createTask({ ...taskData, projectId: project?._id } as any);
+			} else {
+				const { _id, createdAt, updatedAt, ...taskData } = task as any;
+				await apiService.updateTask(task._id, taskData as any);
+			}
+			setShowTaskPopup(false);
+			await refreshTasks();
+			await recomputeAndSyncProgress();
+		} catch (e) {
+			console.error('Failed to save task', e);
+		}
+	};
+
+	const handleTaskDelete = async (taskId: string) => {
+		// Optimistic UI update
+		setTasks(prev => prev.filter(t => t._id !== taskId));
+		setUnassignedTasks(prev => prev.filter(t => t._id !== taskId));
+		if (selectedTask && selectedTask._id === taskId) {
+			setSelectedTask(null);
+			setShowTaskPopup(false);
+		}
+		try {
+			await apiService.deleteTask(taskId);
+			// Ensure consistency with backend
+			await refreshTasks();
+			await recomputeAndSyncProgress();
+		} catch (e) {
+			console.error('Failed to delete task', e);
 		}
 	};
 
@@ -276,21 +380,12 @@ const ProjectDetailPage: React.FC = () => {
 									</div>
 								</div>
 
-								{/* Progress */}
+								{/* Progress (read-only) */}
 								<div>
-									<label className="block text-sm text-gray-300 mb-2">Progress (%)</label>
-									<input
-										type="range"
-										min="0"
-										max="100"
-										value={formData.progress}
-										onChange={(e) => handleInputChange('progress', parseInt(e.target.value))}
-										className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-									/>
-									<div className="flex justify-between text-small text-gray-400 mt-1">
-										<span>0%</span>
-										<span className="text-white font-medium">{formData.progress}%</span>
-										<span>100%</span>
+									<label className="block text-sm text-gray-300 mb-1">Progress</label>
+									<div className="flex items-center justify-between bg-gray-700/60 border border-gray-600 rounded-lg px-3 py-2">
+										<span className="text-white font-medium">{project?.progress ?? formData.progress}%</span>
+										<span className="text-xs text-gray-400">Auto-calculated from completed tasks</span>
 									</div>
 								</div>
 
@@ -483,9 +578,73 @@ const ProjectDetailPage: React.FC = () => {
 								)}
 							</div>
 						)}
+
+						{/* Tasks Section */}
+						{project && (
+							<div className="bg-gray-800 rounded-lg p-4">
+								<div className="flex items-center justify-between mb-3">
+									<h3 className="text-body font-medium text-gray-300">Project Tasks</h3>
+									<div className="flex items-center gap-2">
+										<Button text="Add Task" variant="outline" size="sm" onClick={handleAddTask} />
+										{unassignedTasks.length > 0 && (
+											<form
+												onSubmit={(e) => { e.preventDefault(); handleAssignTask(); }}
+												className="flex items-center gap-1"
+											>
+												<select
+													value={selectedAssignTaskId}
+													onChange={(e) => setSelectedAssignTaskId(e.target.value)}
+													className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-xs text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+												>
+													<option value="">Assign existing…</option>
+													{unassignedTasks.map(t => (
+														<option key={t._id} value={t._id}>{t.title}</option>
+													))}
+												</select>
+												<Button
+													text={assigning ? 'Assigning…' : 'Assign'}
+													variant="primary"
+													size="sm"
+													onClick={handleAssignTask}
+													disabled={!selectedAssignTaskId || assigning}
+												/>
+											</form>
+										)}
+									</div>
+								</div>
+								{tasksLoading ? (
+									<div className="text-small text-gray-400">Loading tasks…</div>
+								) : tasks.length === 0 ? (
+									<div className="text-small text-gray-400">No tasks yet for this project.</div>
+								) : (
+										<TaskLists
+										tasks={tasks}
+										isLoading={false}
+										onTaskClick={(t) => { setSelectedTask(t); setShowTaskPopup(true); }}
+										onTaskEdit={(t) => { setSelectedTask(t); setShowTaskPopup(true); }}
+											onTaskDelete={(id) => handleTaskDelete(id)}
+											onTaskToggle={async (t) => { await apiService.updateTask(t._id, { status: t.status === 'completed' ? 'pending' : 'completed' }); await refreshTasks(); await recomputeAndSyncProgress(); }}
+										showActions={true}
+									/>
+								)}
+							</div>
+						)}
 					</div>
 				)}
 			</div>
+
+			{/* Task Popup */}
+			{showTaskPopup && (
+				<TaskCardPopup
+					isOpen={showTaskPopup}
+					onClose={() => setShowTaskPopup(false)}
+					task={selectedTask}
+					onSave={handleTaskSave}
+					onDelete={selectedTask ? () => handleTaskDelete(selectedTask._id) : undefined}
+					startInEdit={!!selectedTask}
+					defaultProjectId={project?._id}
+				/>
+			)}
 		</Layout>
 	);
 };
