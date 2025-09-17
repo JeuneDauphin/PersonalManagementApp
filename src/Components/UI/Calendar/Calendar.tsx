@@ -150,28 +150,12 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
   const days: Date[] = [];
   for (let d = start; !isAfter(d, end); d = addDays(d, 1)) days.push(d);
 
-  // group events by day (used for counts and potential per-day content)
-  const eventsByDay = useMemo(() => {
-    const map = new Map<string, (CalendarEvent & { color: string })[]>();
-    days.forEach(d => map.set(d.toDateString(), []));
-    events.forEach(e => {
-      const s = startOfDay(e.startDate);
-      const eEnd = startOfDay(e.endDate);
-      for (let d = s; !isAfter(d, eEnd); d = addDays(d, 1)) {
-        const key = d.toDateString();
-        if (map.has(key)) map.get(key)!.push(e);
-      }
-    });
-    map.forEach(list => list.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()));
-    return map;
-  }, [events, days]);
-
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const toggleExpand = (key: string) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
+  // Removed per-day count/expand logic; weekly overlay is scrollable so no need for +N indicator.
 
   const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const ROW_HEIGHT = 18; // px per lane
   const TOP_OFFSET = 36; // px below the day number row (more space between date and bar)
+  const MAX_VISIBLE_LANES = 4; // before scrolling (week overlay scrolls independently now)
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -230,64 +214,57 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
               <div key={wIdx} className="relative" style={{ height: `${100 / 6}%` }}>
                 {/* Day cells for this week */}
                 <div className="grid grid-cols-7 h-full">
-                  {weekDays.map((d) => {
-                    const key = d.toDateString();
-                    const dayEvents = eventsByDay.get(key) || [];
-                    const showAll = expanded[key];
-                    const limit = 3;
-                    const extra = Math.max(0, dayEvents.length - limit);
-                    return (
-                      <div
-                        key={key}
-                        className={`border border-gray-700 p-1.5 md:p-2 overflow-hidden ${!isSameMonth(d, date) ? 'bg-gray-900/40 text-gray-500' : 'bg-gray-800'} cursor-pointer`}
-                        onClick={(e) => {
-                          if ((e.target as HTMLElement).closest('[data-event]')) return;
-                          onDateClick?.(d);
-                        }}
-                      >
-                        <div className="relative flex items-center justify-center mb-1 select-none cursor-default">
-                          <span className={`text-xs md:text-sm ${isToday(d) ? 'bg-blue-600 text-white rounded-full px-2 py-0.5' : 'text-gray-300'}`}>{format(d, 'd')}</span>
-                          {!showAll && extra > 0 && (
-                            <button
-                              data-event
-                              className="absolute right-1 top-0 text-[10px] text-blue-400 hover:text-blue-300 cursor-pointer"
-                              onClick={() => toggleExpand(key)}
-                            >
-                              +{extra}
-                            </button>
-                          )}
-                        </div>
-                        {/* Reserve space; events render in overlay */}
-                        <div style={{ height: Math.max(ROW_HEIGHT * lanes.length + 6, 24) }} />
+                  {weekDays.map((d) => (
+                    <div
+                      key={d.toDateString()}
+                      className={`border border-gray-700 p-1.5 md:p-2 overflow-hidden ${!isSameMonth(d, date) ? 'bg-gray-900/40 text-gray-500' : 'bg-gray-800'} cursor-pointer`}
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest('[data-event]')) return;
+                        onDateClick?.(d);
+                      }}
+                    >
+                      <div className="flex items-center justify-center mb-1 select-none cursor-default">
+                        <span className={`text-xs md:text-sm ${isToday(d) ? 'bg-blue-600 text-white rounded-full px-2 py-0.5' : 'text-gray-300'}`}>{format(d, 'd')}</span>
                       </div>
-                    );
-                  })}
-                </div>
-
-                {/* Overlay continuous bars for this week */}
-                <div className="absolute inset-x-0" style={{ top: TOP_OFFSET }}>
-                  {lanes.map((lane, li) => (
-                    <div key={li} className="relative" style={{ height: ROW_HEIGHT }}>
-                      {lane.map(seg => {
-                        const widthCols = seg.endCol - seg.startCol + 1;
-                        const left = `calc(${seg.startCol} * (100% / 7))`;
-                        const width = `calc(${widthCols} * (100% / 7) - 2px)`;
-                        const showTitle = seg.isStart || seg.startCol === 0; // show at start of event or when a new week segment begins
-                        return (
-                          <button
-                            key={`${seg.event._id}-${seg.startCol}-${seg.endCol}`}
-                            data-event
-                            className={`absolute text-left text-xs text-white px-2 cursor-pointer ${(seg.isStart || seg.startCol === 0) ? 'rounded-l' : ''} ${(seg.isEnd || seg.endCol === 6) ? 'rounded-r' : ''}`}
-                            style={{ left, width, top: 2, height: ROW_HEIGHT - 4, lineHeight: `${ROW_HEIGHT - 4}px`, backgroundColor: (seg.event as any).color, zIndex: 10 as any }}
-                            onClick={() => onEventClick?.(seg.event)}
-                            title={seg.event.title}
-                          >
-                            {showTitle ? seg.event.title : '\u00A0'}
-                          </button>
-                        );
-                      })}
+                      {/* Reserve only up to MAX_VISIBLE_LANES worth of height; additional lanes are accessed via scroll overlay */}
+                      <div style={{ height: Math.max(Math.min(lanes.length, MAX_VISIBLE_LANES) * ROW_HEIGHT + 6, 24) }} />
                     </div>
                   ))}
+                </div>
+
+                {/* Overlay continuous bars for this week
+                    Made scrollable: container now fills vertical space between date header (TOP_OFFSET) and week row bottom.
+                    This prevents visual overflow when there are many lanes; users can scroll vertically inside the week.
+                */}
+                <div
+                  className="absolute inset-x-0 bottom-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent"
+                  style={{ top: TOP_OFFSET }}
+                >
+                  {/* Inner list keeps natural height (lanes * ROW_HEIGHT) enabling scroll if it exceeds available space */}
+                  <div style={{ position: 'relative', paddingBottom: 2 }}>
+                    {lanes.map((lane, li) => (
+                      <div key={li} className="relative" style={{ height: ROW_HEIGHT }}>
+                        {lane.map(seg => {
+                          const widthCols = seg.endCol - seg.startCol + 1;
+                          const left = `calc(${seg.startCol} * (100% / 7))`;
+                          const width = `calc(${widthCols} * (100% / 7) - 2px)`;
+                          const showTitle = seg.isStart || seg.startCol === 0; // show at start of event or when a new week segment begins
+                          return (
+                            <button
+                              key={`${seg.event._id}-${seg.startCol}-${seg.endCol}`}
+                              data-event
+                              className={`absolute text-left text-xs text-white px-2 cursor-pointer ${(seg.isStart || seg.startCol === 0) ? 'rounded-l' : ''} ${(seg.isEnd || seg.endCol === 6) ? 'rounded-r' : ''}`}
+                              style={{ left, width, top: 2, height: ROW_HEIGHT - 4, lineHeight: `${ROW_HEIGHT - 4}px`, backgroundColor: (seg.event as any).color, zIndex: 10 as any }}
+                              onClick={() => onEventClick?.(seg.event)}
+                              title={seg.event.title}
+                            >
+                              {showTitle ? seg.event.title : '\u00A0'}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             );
