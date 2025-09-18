@@ -1,7 +1,7 @@
 // Custom Google-like calendar component (no external calendar package)
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { addDays, addMonths, addWeeks, differenceInCalendarDays, differenceInMinutes, endOfMonth, endOfWeek, format, isAfter, isSameDay, isSameMonth, isToday, parseISO, setHours, setMinutes, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
-import { CalendarEvent } from '../../../utils/interfaces/interfaces';
+import { CalendarEvent, Task } from '../../../utils/interfaces/interfaces';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Button from '../Button';
 
@@ -15,6 +15,7 @@ interface CalendarProps {
   onViewChange?: (view: string) => void;
   editable?: boolean; // currently unused; reserved for future drag/drop
   onVisibleDateChange?: (date: Date) => void; // notify parent when user navigates
+  onTaskDotClick?: (task: Task) => void; // open task details when clicking task dot
 }
 
 const HOURS_START = 0;
@@ -42,6 +43,7 @@ const Calendar: React.FC<CalendarProps> = ({
   onViewChange,
   editable: _editable = true,
   onVisibleDateChange,
+  onTaskDotClick,
 }) => {
   const [visibleDate, setVisibleDate] = useState<Date>(currentDate);
   const [activeView, setActiveView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'>(view);
@@ -130,7 +132,7 @@ const Calendar: React.FC<CalendarProps> = ({
       {/* Body */}
       <div className="flex-1 min-h-0 overflow-hidden">
         {activeView === 'dayGridMonth' && (
-          <MonthView date={visibleDate} events={eventsNormalized} onDateClick={onDateClick} onEventClick={onEventClick} />
+          <MonthView date={visibleDate} events={eventsNormalized} onDateClick={onDateClick} onEventClick={onEventClick} onTaskDotClick={onTaskDotClick} />
         )}
         {activeView === 'timeGridWeek' && (
           <WeekView date={visibleDate} events={eventsNormalized} onEventClick={onEventClick} />
@@ -144,7 +146,7 @@ const Calendar: React.FC<CalendarProps> = ({
 };
 
 // Month View
-const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string })[]; onDateClick?: (d: Date) => void; onEventClick?: (e: CalendarEvent) => void; }> = ({ date, events, onDateClick, onEventClick }) => {
+const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string })[]; onDateClick?: (d: Date) => void; onEventClick?: (e: CalendarEvent) => void; onTaskDotClick?: (task: Task) => void; }> = ({ date, events, onDateClick, onEventClick, onTaskDotClick }) => {
   const start = startOfWeek(startOfMonth(date), { weekStartsOn: 1 });
   const end = endOfWeek(endOfMonth(date), { weekStartsOn: 1 });
   const days: Date[] = [];
@@ -210,6 +212,17 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
               if (!placed) lanes.push([seg]);
             });
 
+            // Compute lane heights: if a lane contains a project with tasks, make it taller
+            const laneHeights = lanes.map(lane => {
+              const hasProjWithTasks = lane.some(seg => {
+                const id = (seg.event as any)?._id as string | undefined;
+                const tasks = (seg.event as any)?.tasks as any[] | undefined;
+                return !!id && id.startsWith('project-') && Array.isArray(tasks) && tasks.length > 0;
+              });
+              return hasProjWithTasks ? ROW_HEIGHT + 10 : ROW_HEIGHT; // add extra height for task dots
+            });
+            const reservedHeight = Math.max(laneHeights.slice(0, MAX_VISIBLE_LANES).reduce((a, b) => a + b, 0) + 6, 24);
+
             return (
               <div key={wIdx} className="relative" style={{ height: `${100 / 6}%` }}>
                 {/* Day cells for this week */}
@@ -226,8 +239,8 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
                       <div className="flex items-center justify-center mb-1 select-none cursor-default">
                         <span className={`text-xs md:text-sm ${isToday(d) ? 'bg-blue-600 text-white rounded-full px-2 py-0.5' : 'text-gray-300'}`}>{format(d, 'd')}</span>
                       </div>
-                      {/* Reserve only up to MAX_VISIBLE_LANES worth of height; additional lanes are accessed via scroll overlay */}
-                      <div style={{ height: Math.max(Math.min(lanes.length, MAX_VISIBLE_LANES) * ROW_HEIGHT + 6, 24) }} />
+                      {/* Reserve vertical space matching the visible lanes' heights */}
+                      <div style={{ height: reservedHeight }} />
                     </div>
                   ))}
                 </div>
@@ -243,22 +256,88 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
                   {/* Inner list keeps natural height (lanes * ROW_HEIGHT) enabling scroll if it exceeds available space */}
                   <div style={{ position: 'relative', paddingBottom: 2 }}>
                     {lanes.map((lane, li) => (
-                      <div key={li} className="relative" style={{ height: ROW_HEIGHT }}>
+                      <div key={li} className="relative" style={{ height: laneHeights[li] }}>
                         {lane.map(seg => {
                           const widthCols = seg.endCol - seg.startCol + 1;
                           const left = `calc(${seg.startCol} * (100% / 7))`;
                           const width = `calc(${widthCols} * (100% / 7) - 2px)`;
                           const showTitle = seg.isStart || seg.startCol === 0; // show at start of event or when a new week segment begins
+                          // Build compact label for project events with tasks
+                          const isProject = typeof (seg.event as any)._id === 'string' && (seg.event as any)._id.startsWith('project-');
+                          const tasks: any[] = isProject ? ((seg.event as any).tasks || []) : [];
+                          const tooltip = `${seg.event.title}${tasks.length ? `\nTasks: ${tasks.map((t: any) => t.title).join(', ')}` : ''}`;
+                          // Compute dot positions within this weekly segment for each task's dueDate
+                          const segStartDate = addDays(weekStart, seg.startCol);
+                          // Helper: color per task (priority first, then status fallback)
+                          const colorForTask = (t: any) => {
+                            const p = t.priority as string | undefined;
+                            switch (p) {
+                              case 'urgent': return '#ef4444'; // red-500
+                              case 'high': return '#f97316'; // orange-500
+                              case 'medium': return '#f59e0b'; // amber-500
+                              case 'low': return '#10b981'; // emerald-500
+                            }
+                            const s = t.status as string | undefined;
+                            switch (s) {
+                              case 'completed': return '#22c55e'; // green-500
+                              case 'in-progress': return '#3b82f6'; // blue-500
+                              case 'pending': return '#a855f7'; // purple-500
+                              case 'cancelled': return '#6b7280'; // gray-500
+                              default: return '#ffffff';
+                            }
+                          };
+
+                          // Group tasks by day index, but keep individual tasks to render one dot per task
+                          const tasksByDay = new Map<number, { task: any; date: Date }[]>();
+                          (tasks || [])
+                            .filter((t: any) => !!t.dueDate)
+                            .forEach((t: any) => {
+                              const d = new Date(t.dueDate);
+                              if (isAfter(startOfDay(d), endOfWeek(segStartDate, { weekStartsOn: 1 })) || isAfter(startOfDay(segStartDate), startOfDay(d))) return;
+                              const dayIdx = Math.max(0, Math.min(widthCols - 1, differenceInCalendarDays(startOfDay(d), startOfDay(segStartDate))));
+                              if (!tasksByDay.has(dayIdx)) tasksByDay.set(dayIdx, []);
+                              tasksByDay.get(dayIdx)!.push({ task: t, date: d });
+                            });
+
+                          const DOT_SPACING = 20; // px between dots in the same day (even wider gap for larger dots)
+                          const taskDots = Array.from(tasksByDay.entries()).flatMap(([dayIdx, arr]) => {
+                            const frac = (dayIdx + 0.5) / widthCols;
+                            const basePct = frac * 100;
+                            const offsets = Array.from({ length: arr.length }, (_, i) => (i - (arr.length - 1) / 2) * DOT_SPACING);
+                            return arr.map((entry, i) => ({
+                              leftPct: basePct,
+                              offsetPx: offsets[i],
+                              color: colorForTask(entry.task),
+                              title: `${entry.task.title}${entry.task.priority ? ` • ${entry.task.priority}` : ''} (${format(entry.date, 'PP')})`,
+                              task: entry.task,
+                            }));
+                          });
                           return (
                             <button
                               key={`${seg.event._id}-${seg.startCol}-${seg.endCol}`}
                               data-event
                               className={`absolute text-left text-xs text-white px-2 cursor-pointer ${(seg.isStart || seg.startCol === 0) ? 'rounded-l' : ''} ${(seg.isEnd || seg.endCol === 6) ? 'rounded-r' : ''}`}
-                              style={{ left, width, top: 2, height: ROW_HEIGHT - 4, lineHeight: `${ROW_HEIGHT - 4}px`, backgroundColor: (seg.event as any).color, zIndex: 10 as any }}
+                              style={{ left, width, top: 2, height: laneHeights[li] - 4, lineHeight: `${laneHeights[li] - 4}px`, backgroundColor: (seg.event as any).color, zIndex: 10 as any }}
                               onClick={() => onEventClick?.(seg.event)}
-                              title={seg.event.title}
+                              title={tooltip}
                             >
-                              {showTitle ? seg.event.title : '\u00A0'}
+                              {/* Label */}
+                              {showTitle ? `${seg.event.title}` : '\u00A0'}
+                              {/* Dot overlay for project tasks within this segment */}
+                              {isProject && taskDots.length > 0 && (
+                                <div className="pointer-events-none absolute inset-0">
+                                  {taskDots.map((dot, idx) => (
+                                    <button
+                                      key={idx}
+                                      className="absolute block w-3 h-3 rounded-full ring-2 ring-white/90 shadow-sm pointer-events-auto hover:scale-110 transition-transform"
+                                      style={{ left: `calc(${dot.leftPct}% + ${dot.offsetPx}px)`, top: '50%', transform: 'translate(-50%, -50%)', backgroundColor: (dot as any).color }}
+                                      title={(dot as any).title}
+                                      onClick={(e) => { e.stopPropagation(); const t = (dot as any).task as Task | undefined; if (t) onTaskDotClick?.(t); }}
+                                      aria-label={(dot as any).title}
+                                    />
+                                  ))}
+                                </div>
+                              )}
                             </button>
                           );
                         })}
@@ -401,15 +480,21 @@ const TimeGridBody: React.FC<{ days: Date[]; events: (CalendarEvent & { color: s
               {hasAllDay && (
                 <div className="h-8 border-b border-gray-700 px-1.5 py-1">
                   <div className="flex gap-1 overflow-hidden">
-                    {allDay.map(ev => (
-                      <button
-                        key={ev._id}
-                        className="px-2 py-0.5 rounded text-[10px] text-white truncate cursor-pointer"
-                        style={{ backgroundColor: (ev as any).color }}
-                        onClick={() => onEventClick?.(ev)}
-                        title={ev.title}
-                      >{ev.title}</button>
-                    ))}
+                    {allDay.map(ev => {
+                      const isProject = typeof (ev as any)._id === 'string' && (ev as any)._id.startsWith('project-');
+                      const tasks: any[] = isProject ? ((ev as any).tasks || []) : [];
+                      const tasksPreview = tasks.length > 0 ? ` · ${tasks[0].title}${tasks.length > 1 ? ` +${tasks.length - 1}` : ''}` : '';
+                      const tooltip = `${ev.title}${tasks.length ? `\nTasks: ${tasks.map((t: any) => t.title).join(', ')}` : ''}`;
+                      return (
+                        <button
+                          key={ev._id}
+                          className="px-2 py-0.5 rounded text-[10px] text-white truncate cursor-pointer"
+                          style={{ backgroundColor: (ev as any).color }}
+                          onClick={() => onEventClick?.(ev)}
+                          title={tooltip}
+                        >{`${ev.title}${isProject ? tasksPreview : ''}`}</button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -429,26 +514,32 @@ const TimeGridBody: React.FC<{ days: Date[]; events: (CalendarEvent & { color: s
                 )}
 
                 {/* events */}
-                {timed.map(ev => (
-                  <div
-                    key={ev._id}
-                    className="absolute rounded p-1 md:p-1.5 text-[10px] md:text-xs text-white overflow-hidden shadow cursor-pointer"
-                    style={{
-                      top: `${ev.top}%`,
-                      height: `${ev.height}%`,
-                      left: `${ev.left}%`,
-                      width: `${ev.width}%`,
-                      backgroundColor: ev.color,
-                    }}
-                    onClick={() => onEventClick?.(ev)}
-                    title={ev.title}
-                  >
-                    <div className="font-medium truncate">{ev.title}</div>
-                    <div className="opacity-80 truncate">
-                      {format(ev.startDate, 'HH:mm')} – {format(ev.endDate, 'HH:mm')}
+                {timed.map(ev => {
+                  const isProject = typeof (ev as any)._id === 'string' && (ev as any)._id.startsWith('project-');
+                  const tasks: any[] = isProject ? ((ev as any).tasks || []) : [];
+                  const tasksPreview = tasks.length > 0 ? ` · ${tasks[0].title}${tasks.length > 1 ? ` +${tasks.length - 1}` : ''}` : '';
+                  const tooltip = `${ev.title}${tasks.length ? `\nTasks: ${tasks.map((t: any) => t.title).join(', ')}` : ''}`;
+                  return (
+                    <div
+                      key={ev._id}
+                      className="absolute rounded p-1 md:p-1.5 text-[10px] md:text-xs text-white overflow-hidden shadow cursor-pointer"
+                      style={{
+                        top: `${ev.top}%`,
+                        height: `${ev.height}%`,
+                        left: `${ev.left}%`,
+                        width: `${ev.width}%`,
+                        backgroundColor: ev.color,
+                      }}
+                      onClick={() => onEventClick?.(ev)}
+                      title={tooltip}
+                    >
+                      <div className="font-medium truncate">{`${ev.title}${isProject ? tasksPreview : ''}`}</div>
+                      <div className="opacity-80 truncate">
+                        {format(ev.startDate, 'HH:mm')} – {format(ev.endDate, 'HH:mm')}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
