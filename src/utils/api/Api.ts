@@ -40,7 +40,16 @@ class ApiService {
     });
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      // Try to include server-provided error details
+      let details = '';
+      try {
+        const data = await response.json();
+        details = data?.error || data?.message || JSON.stringify(data);
+      } catch {
+        try { details = await response.text(); } catch { /* ignore */ }
+      }
+      const suffix = details ? ` - ${details}` : '';
+      throw new Error(`API Error: ${response.status} ${response.statusText}${suffix}`);
     }
 
     return response.json();

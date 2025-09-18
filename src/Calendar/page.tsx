@@ -21,8 +21,8 @@ import {
 
 const CalendarPage: React.FC = () => {
   const { data: events, loading, refresh } = useEvents();
-  const { data: tasks } = useTasks();
-  const { data: projects } = useProjects();
+  const { data: tasks, refresh: refreshTasks } = useTasks();
+  const { data: projects, refresh: refreshProjects } = useProjects();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventPopup, setShowEventPopup] = useState(false);
@@ -210,17 +210,35 @@ const CalendarPage: React.FC = () => {
 
   const handleEventSave = async (event: CalendarEvent) => {
     try {
-      if (event._id.startsWith('temp-')) {
-        // Creating new event
+      // Route save based on event origin
+      if (event._id.startsWith('project-')) {
+        // Synthetic project event => update the underlying project dates
+        const projectId = event._id.replace(/^project-/, '');
+        await apiService.updateProject(projectId, {
+          startDate: event.startDate,
+          endDate: event.endDate,
+        });
+        // Refresh projects to reflect the change in the calendar
+        await refreshProjects();
+      } else if (event._id.startsWith('task-')) {
+        // Synthetic task event => update the task due date from startDate
+        const taskId = event._id.replace(/^task-/, '');
+        await apiService.updateTask(taskId, {
+          dueDate: event.startDate,
+        } as any);
+        await refreshTasks();
+      } else if (event._id.startsWith('temp-')) {
+      // Creating new real calendar event
         const { _id, createdAt, updatedAt, ...eventData } = event;
         await apiService.createEvent(eventData);
+        await refresh();
       } else {
-        // Updating existing event
+        // Updating existing real calendar event
         const { _id, createdAt, updatedAt, ...eventData } = event;
         await apiService.updateEvent(event._id, eventData);
+        await refresh();
       }
       setShowEventPopup(false);
-      refresh();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Failed to save event';
       setNotif({ open: true, type: 'error', title: 'Save failed', message: msg });
@@ -229,8 +247,13 @@ const CalendarPage: React.FC = () => {
 
   const handleEventDelete = async (eventId: string) => {
     try {
+      // Prevent deleting synthetic events (project/task) from the calendar
+      if (eventId.startsWith('project-') || eventId.startsWith('task-')) {
+        setNotif({ open: true, type: 'info', title: 'Not deletable from calendar', message: 'This item reflects a project or task. Edit it from its page or change its dates here.' });
+        return;
+      }
       await apiService.deleteEvent(eventId);
-      refresh();
+      await refresh();
     } catch (error) {
       console.error('Failed to delete event:', error);
     }
