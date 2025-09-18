@@ -5,6 +5,7 @@ import Calendar from '../Components/UI/Calendar/Calendar';
 import EventLists from '../Components/UI/Calendar/EventLists';
 import DateShortcut from '../Components/UI/Calendar/DateShortcut';
 import EventCardPopup from '../Components/UI/Calendar/EventCardPopup';
+import TaskCardPopup from '../Components/UI/Tasks/TaskCardPop';
 import { useEvents, useProjects, useTasks } from '../utils/hooks/hooks';
 import { CalendarEvent, Task, Project } from '../utils/interfaces/interfaces';
 import { apiService } from '../utils/api/Api';
@@ -32,6 +33,9 @@ const CalendarPage: React.FC = () => {
   const [notif, setNotif] = useState<{ open: boolean; type: 'success' | 'error' | 'info' | 'warning'; title: string; message: string }>(
     { open: false, type: 'error', title: '', message: '' }
   );
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showTaskPopup, setShowTaskPopup] = useState(false);
+  const [taskStartInEdit, setTaskStartInEdit] = useState(false);
 
   // Determine the currently visible range based on the active calendar view
   const { rangeStart, rangeEnd, listTitle } = useMemo(() => {
@@ -80,9 +84,24 @@ const CalendarPage: React.FC = () => {
 
   const oneHourAfter = (d: Date) => new Date(d.getTime() + 60 * 60 * 1000);
 
-  // Convert tasks to synthetic events
+  // Build quick lookup of tasks by project to enrich project events and prevent duplicate task rendering
+  const tasksByProjectId = useMemo(() => {
+    const map = new Map<string, Task[]>();
+    (tasks || []).forEach((t: any) => {
+      const pid: string | undefined = t.projectId || t.project; // tolerate either field from API
+      if (!pid) return;
+      if (!map.has(pid)) map.set(pid, []);
+      map.get(pid)!.push(t as Task);
+    });
+    return map;
+  }, [tasks]);
+
+  // Convert tasks without a project to synthetic events (project-linked tasks will be shown inside project bars)
   const taskEvents: CalendarEvent[] = useMemo(() => {
-    return (tasks || []).filter(t => !!t.dueDate).map((t: Task): CalendarEvent => {
+    return (tasks || [])
+      .filter((t: any) => !((t.projectId || t.project)))
+      .filter((t: Task) => !!t.dueDate)
+      .map((t: Task): CalendarEvent => {
       const base = new Date(t.dueDate);
       if (isTimeGrid) {
         const start = withDefaultTime(base, 9, 0);
@@ -122,12 +141,13 @@ const CalendarPage: React.FC = () => {
     });
   }, [tasks, isTimeGrid]);
 
-  // Convert projects to synthetic events
+  // Convert projects to synthetic events and attach their tasks for display inside the project color button
   const projectEvents: CalendarEvent[] = useMemo(() => {
     return (projects || []).filter(p => !!p.startDate).flatMap((p: Project): CalendarEvent[] => {
       const rawStart = new Date(p.startDate);
       const hasEnd = !!p.endDate;
       const rawEnd = hasEnd ? new Date(p.endDate as Date) : new Date(p.startDate);
+      const projTasks = tasksByProjectId.get(p._id) || [];
       if (isTimeGrid) {
         // In week/day views, render as timed events
         const start = withDefaultTime(rawStart, 9, 0);
@@ -146,7 +166,7 @@ const CalendarPage: React.FC = () => {
           reminders: [],
           createdAt: new Date(p.createdAt),
           updatedAt: new Date(p.updatedAt),
-          ...({ color: '#8b5cf6' } as any),
+          ...({ color: '#8b5cf6', tasks: projTasks } as any),
         } as any];
       }
       // Month view: keep as all-day spanning
@@ -163,10 +183,10 @@ const CalendarPage: React.FC = () => {
         reminders: [],
         createdAt: new Date(p.createdAt),
         updatedAt: new Date(p.updatedAt),
-        ...({ color: '#8b5cf6' } as any),
+        ...({ color: '#8b5cf6', tasks: projTasks } as any),
       } as any];
     });
-  }, [projects, isTimeGrid]);
+  }, [projects, isTimeGrid, tasksByProjectId]);
 
   // Merge API events with synthetic task/project events
   const mergedEvents: CalendarEvent[] = useMemo(() => {
@@ -314,6 +334,11 @@ const CalendarPage: React.FC = () => {
               onViewChange={(view) => setCalendarView(view as any)}
               editable={true}
               onVisibleDateChange={(d) => setSelectedDate(d)}
+              onTaskDotClick={(task: Task) => {
+                setSelectedTask(task);
+                setTaskStartInEdit(false);
+                setShowTaskPopup(true);
+              }}
             />
           </div>
         </div>
@@ -340,6 +365,38 @@ const CalendarPage: React.FC = () => {
         isOpen={notif.open}
         onClose={() => setNotif(prev => ({ ...prev, open: false }))}
       />
+
+      {/* Task Popup */}
+      {showTaskPopup && (
+        <TaskCardPopup
+          task={selectedTask ?? undefined}
+          isOpen={showTaskPopup}
+          onClose={() => setShowTaskPopup(false)}
+          onSave={async (task: Task) => {
+            try {
+              if (task._id.startsWith('temp-')) {
+                const { _id, createdAt, updatedAt, ...taskData } = task as any;
+                await apiService.createTask(taskData);
+              } else {
+                const { _id, createdAt, updatedAt, ...taskData } = task as any;
+                await apiService.updateTask(task._id, taskData);
+              }
+              setShowTaskPopup(false);
+              await refreshTasks();
+            } catch (e) {
+              console.error(e);
+            }
+          }}
+          onDelete={selectedTask ? async () => {
+            try {
+              await apiService.deleteTask(selectedTask._id);
+              setShowTaskPopup(false);
+              await refreshTasks();
+            } catch (e) { console.error(e); }
+          } : undefined}
+          startInEdit={taskStartInEdit}
+        />
+      )}
     </Layout>
   );
 };
