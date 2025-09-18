@@ -68,37 +68,94 @@ const CalendarPage: React.FC = () => {
     return evStart <= end && evEnd >= start;
   };
 
-  // Convert tasks to synthetic all-day calendar events (due date only)
-  const taskEvents: CalendarEvent[] = useMemo(() => {
-    return (tasks || []).filter(t => !!t.dueDate).map((t: Task): CalendarEvent => ({
-      _id: `task-${t._id}`,
-      title: `Task: ${t.title}`,
-      description: t.description,
-      startDate: new Date(t.dueDate),
-      endDate: new Date(t.dueDate),
-      isAllDay: true,
-      type: 'deadline',
-      location: undefined,
-      attendees: undefined,
-      reminders: [],
-      createdAt: new Date(t.createdAt),
-      updatedAt: new Date(t.updatedAt),
-      // UI-only color to distinguish tasks
-      ...({ color: '#ef4444' } as any),
-    }));
-  }, [tasks]);
+  // Helpers to ensure events have sensible times in time-grid views
+  const isTimeGrid = calendarView !== 'dayGridMonth';
+  const withDefaultTime = (d: Date, hour = 9, minute = 0) => {
+    const date = new Date(d);
+    if (date.getHours() === 0 && date.getMinutes() === 0) {
+      date.setHours(hour, minute, 0, 0);
+    }
+    return date;
+  };
 
-  // Convert projects to synthetic all-day multi-day events spanning start..end or 1 day if no end
-  const projectEvents: CalendarEvent[] = useMemo(() => {
-    return (projects || []).filter(p => !!p.startDate).map((p: Project): CalendarEvent => {
-      const s = new Date(p.startDate);
-      const e = p.endDate ? new Date(p.endDate) : new Date(p.startDate);
+  const oneHourAfter = (d: Date) => new Date(d.getTime() + 60 * 60 * 1000);
+
+  // Convert tasks to synthetic events
+  const taskEvents: CalendarEvent[] = useMemo(() => {
+    return (tasks || []).filter(t => !!t.dueDate).map((t: Task): CalendarEvent => {
+      const base = new Date(t.dueDate);
+      if (isTimeGrid) {
+        const start = withDefaultTime(base, 9, 0);
+        const end = oneHourAfter(start);
+        return {
+          _id: `task-${t._id}`,
+          title: `Task: ${t.title}`,
+          description: t.description,
+          startDate: start,
+          endDate: end,
+          isAllDay: false,
+          type: 'deadline',
+          location: undefined,
+          attendees: undefined,
+          reminders: [],
+          createdAt: new Date(t.createdAt),
+          updatedAt: new Date(t.updatedAt),
+          ...({ color: '#ef4444' } as any),
+        } as any;
+      }
+      // Month view: keep all-day on the due date
       return {
+        _id: `task-${t._id}`,
+        title: `Task: ${t.title}`,
+        description: t.description,
+        startDate: base,
+        endDate: base,
+        isAllDay: true,
+        type: 'deadline',
+        location: undefined,
+        attendees: undefined,
+        reminders: [],
+        createdAt: new Date(t.createdAt),
+        updatedAt: new Date(t.updatedAt),
+        ...({ color: '#ef4444' } as any),
+      } as any;
+    });
+  }, [tasks, isTimeGrid]);
+
+  // Convert projects to synthetic events
+  const projectEvents: CalendarEvent[] = useMemo(() => {
+    return (projects || []).filter(p => !!p.startDate).flatMap((p: Project): CalendarEvent[] => {
+      const rawStart = new Date(p.startDate);
+      const hasEnd = !!p.endDate;
+      const rawEnd = hasEnd ? new Date(p.endDate as Date) : new Date(p.startDate);
+      if (isTimeGrid) {
+        // In week/day views, render as timed events
+        const start = withDefaultTime(rawStart, 9, 0);
+        const end = hasEnd ? withDefaultTime(rawEnd, 18, 0) : oneHourAfter(start);
+        // If multi-day, keep as a spanning event so start/end markers appear at the correct times
+        return [{
+          _id: `project-${p._id}`,
+          title: `Project: ${p.name}`,
+          description: p.description,
+          startDate: start,
+          endDate: end,
+          isAllDay: false,
+          type: 'personal',
+          location: undefined,
+          attendees: undefined,
+          reminders: [],
+          createdAt: new Date(p.createdAt),
+          updatedAt: new Date(p.updatedAt),
+          ...({ color: '#8b5cf6' } as any),
+        } as any];
+      }
+      // Month view: keep as all-day spanning
+      return [{
         _id: `project-${p._id}`,
         title: `Project: ${p.name}`,
         description: p.description,
-        startDate: s,
-        endDate: e,
+        startDate: rawStart,
+        endDate: rawEnd,
         isAllDay: true,
         type: 'personal',
         location: undefined,
@@ -106,11 +163,10 @@ const CalendarPage: React.FC = () => {
         reminders: [],
         createdAt: new Date(p.createdAt),
         updatedAt: new Date(p.updatedAt),
-        // UI-only color to distinguish projects (purple)
         ...({ color: '#8b5cf6' } as any),
-      } as any;
+      } as any];
     });
-  }, [projects]);
+  }, [projects, isTimeGrid]);
 
   // Merge API events with synthetic task/project events
   const mergedEvents: CalendarEvent[] = useMemo(() => {
