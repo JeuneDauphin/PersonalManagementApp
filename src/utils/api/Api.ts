@@ -46,6 +46,31 @@ class ApiService {
     return response.json();
   }
 
+  /**
+   * Recompute a project's progress based on its tasks (completed/total * 100),
+   * then sync the new value to the backend. Returns the computed progress.
+   */
+  async recomputeAndSyncProjectProgress(projectId: string): Promise<number> {
+    try {
+      const allTasks = await this.getTasks();
+      const relevant = allTasks.filter(
+        (t: any) => (t as any).projectId === projectId || (t as any).project === projectId
+      );
+      const total = relevant.length;
+      const completed = relevant.filter((t: any) => t.status === 'completed').length;
+      const nextProgress = total === 0 ? 0 : Math.round((completed / total) * 100);
+      await this.updateProject(projectId, {
+        progress: nextProgress,
+        ...(nextProgress === 100 ? { status: 'completed' } : {}),
+      });
+      return nextProgress;
+    } catch (e) {
+      // Surface a controlled error but don't crash callers
+      console.error('recomputeAndSyncProjectProgress failed', e);
+      throw e;
+    }
+  }
+
   // Tasks API
   async getTasks(): Promise<Task[]> {
     const response = await this.request<PaginatedResponse<Task>>('/tasks');

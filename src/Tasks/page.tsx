@@ -89,8 +89,15 @@ const TasksPage: React.FC = () => {
 
   const handleTaskDelete = async (taskId: string) => {
     try {
+      // capture task before deletion to know project association
+      const task = (tasks || []).find(t => t._id === taskId);
       await apiService.deleteTask(taskId);
       refresh();
+      // recompute linked project progress if applicable
+      const projectId = (task as any)?.projectId || (task as any)?.project;
+      if (projectId) {
+        try { await apiService.recomputeAndSyncProjectProgress(projectId); } catch {}
+      }
     } catch (error) {
       console.error('Failed to delete task:', error);
     }
@@ -102,6 +109,10 @@ const TasksPage: React.FC = () => {
       const newStatus = task.status === 'completed' ? 'pending' : 'completed';
       await apiService.updateTask(task._id, { status: newStatus });
       refresh();
+      const projectId = (task as any)?.projectId || (task as any)?.project;
+      if (projectId) {
+        try { await apiService.recomputeAndSyncProjectProgress(projectId); } catch {}
+      }
     } catch (error) {
       console.error('Failed to update task status:', error);
     }

@@ -54,6 +54,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       await apiService.updateTask(selectedAssignTaskId, { projectId: project._id } as any);
       setSelectedAssignTaskId('');
       await loadUnassigned();
+      // recompute project progress after assignment
+      try { await apiService.recomputeAndSyncProjectProgress(project._id); } catch {}
     } catch (e) {
       // ignore
     } finally {
