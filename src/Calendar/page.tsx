@@ -5,6 +5,7 @@ import Calendar from '../Components/UI/Calendar/Calendar';
 import EventLists from '../Components/UI/Calendar/EventLists';
 import DateShortcut from '../Components/UI/Calendar/DateShortcut';
 import EventCardPopup from '../Components/UI/Calendar/EventCardPopup';
+import ProjectCardPopup from '../Components/UI/Projects/ProjectCardPopup';
 import TaskCardPopup from '../Components/UI/Tasks/TaskCardPop';
 import { useEvents, useProjects, useTasks } from '../utils/hooks/hooks';
 import { CalendarEvent, Task, Project } from '../utils/interfaces/interfaces';
@@ -36,6 +37,9 @@ const CalendarPage: React.FC = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskPopup, setShowTaskPopup] = useState(false);
   const [taskStartInEdit, setTaskStartInEdit] = useState(false);
+  // Project popup state when clicking project blocks in the calendar
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [showProjectPopup, setShowProjectPopup] = useState(false);
 
   // Determine the currently visible range based on the active calendar view
   const { rangeStart, rangeEnd, listTitle } = useMemo(() => {
@@ -203,11 +207,47 @@ const CalendarPage: React.FC = () => {
   }, [mergedEvents, rangeStart, rangeEnd]);
 
   const handleEventClick = (event: CalendarEvent) => {
+    // If it's a synthetic project event, open the Project popup instead
+    if (typeof event._id === 'string' && event._id.startsWith('project-')) {
+      const projectId = event._id.replace(/^project-/, '');
+      const proj = (projects || []).find((p) => p._id === projectId) || null;
+      setSelectedProject(proj);
+      setShowProjectPopup(true);
+      return;
+    }
     // Open the event details popup without changing the current calendar view or selected date
     setSelectedEvent(event);
     setDayPopupDate(null);
     setStartInEdit(false);
     setShowEventPopup(true);
+  };
+
+  const handleProjectSave = async (project: Project) => {
+    try {
+      if (project._id.startsWith('temp-')) {
+        const { _id, createdAt, updatedAt, ...data } = project as any;
+        await apiService.createProject(data as any);
+      } else {
+        const { _id, createdAt, updatedAt, ...data } = project as any;
+        await apiService.updateProject(project._id, data as any);
+      }
+      setShowProjectPopup(false);
+      setSelectedProject(null);
+      await refreshProjects();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleProjectDelete = async (projectId: string) => {
+    try {
+      await apiService.deleteProject(projectId);
+      setShowProjectPopup(false);
+      setSelectedProject(null);
+      await Promise.all([refreshProjects(), refreshTasks()]);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleDateClick = (date: Date) => {
@@ -363,6 +403,17 @@ const CalendarPage: React.FC = () => {
           onDelete={selectedEvent ? () => handleEventDelete(selectedEvent._id) : undefined}
           dayDate={dayPopupDate ?? undefined}
           startInEdit={startInEdit}
+        />
+      )}
+
+      {/* Project Popup for synthetic project events */}
+      {showProjectPopup && (
+        <ProjectCardPopup
+          project={selectedProject ?? undefined}
+          isOpen={showProjectPopup}
+          onClose={() => { setShowProjectPopup(false); setSelectedProject(null); }}
+          onSave={handleProjectSave}
+          onDelete={selectedProject ? () => handleProjectDelete(selectedProject._id) : undefined}
         />
       )}
 
