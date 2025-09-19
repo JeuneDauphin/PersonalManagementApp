@@ -6,9 +6,10 @@ import EventLists from '../Components/UI/Calendar/EventLists';
 import DateShortcut from '../Components/UI/Calendar/DateShortcut';
 import EventCardPopup from '../Components/UI/Calendar/EventCardPopup';
 import ProjectCardPopup from '../Components/UI/Projects/ProjectCardPopup';
+import LessonCardPopup from '../Components/UI/School/LessonCardPopup';
 import TaskCardPopup from '../Components/UI/Tasks/TaskCardPop';
-import { useEvents, useProjects, useTasks } from '../utils/hooks/hooks';
-import { CalendarEvent, Task, Project } from '../utils/interfaces/interfaces';
+import { useEvents, useProjects, useTasks, useLessons } from '../utils/hooks/hooks';
+import { CalendarEvent, Task, Project, Lesson } from '../utils/interfaces/interfaces';
 import { apiService } from '../utils/api/Api';
 import Notification from '../Components/UI/Notification';
 import {
@@ -25,6 +26,7 @@ const CalendarPage: React.FC = () => {
   const { data: events, loading, refresh } = useEvents();
   const { data: tasks, refresh: refreshTasks } = useTasks();
   const { data: projects, refresh: refreshProjects } = useProjects();
+  const { data: lessons, refresh: refreshLessons } = useLessons();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventPopup, setShowEventPopup] = useState(false);
@@ -40,6 +42,11 @@ const CalendarPage: React.FC = () => {
   // Project popup state when clicking project blocks in the calendar
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [showProjectPopup, setShowProjectPopup] = useState(false);
+  const [projectStartInEdit, setProjectStartInEdit] = useState(false);
+  // Lesson popup state
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [showLessonPopup, setShowLessonPopup] = useState(false);
+  const [lessonStartInEdit, setLessonStartInEdit] = useState(false);
 
   // Determine the currently visible range based on the active calendar view
   const { rangeStart, rangeEnd, listTitle } = useMemo(() => {
@@ -192,14 +199,39 @@ const CalendarPage: React.FC = () => {
     });
   }, [projects, isTimeGrid, tasksByProjectId]);
 
+  // Convert lessons to synthetic events so they appear in the calendar/list
+  const lessonEvents: CalendarEvent[] = useMemo(() => {
+    return (lessons || []).map((l: Lesson) => {
+      const start = new Date(l.date);
+      const end = l.duration && l.duration > 0
+        ? new Date(start.getTime() + l.duration * 60000)
+        : new Date(start.getTime() + 60 * 60000);
+      return {
+        _id: `lesson-${l._id}`,
+        title: `Lesson: ${l.title}`,
+        description: l.description,
+        startDate: start,
+        endDate: end,
+        isAllDay: false,
+        type: 'appointment',
+        location: l.location,
+        attendees: undefined,
+        reminders: [],
+        createdAt: new Date(l.createdAt),
+        updatedAt: new Date(l.updatedAt),
+      } as any;
+    });
+  }, [lessons]);
+
   // Merge API events with synthetic task/project events
   const mergedEvents: CalendarEvent[] = useMemo(() => {
     return [
       ...(events || []),
       ...taskEvents,
       ...projectEvents,
+      ...lessonEvents,
     ];
-  }, [events, taskEvents, projectEvents]);
+  }, [events, taskEvents, projectEvents, lessonEvents]);
 
   // Filter events for the computed range (from merged)
   const eventsForList = useMemo(() => {
@@ -212,7 +244,26 @@ const CalendarPage: React.FC = () => {
       const projectId = event._id.replace(/^project-/, '');
       const proj = (projects || []).find((p) => p._id === projectId) || null;
       setSelectedProject(proj);
+      setProjectStartInEdit(false);
       setShowProjectPopup(true);
+      return;
+    }
+    // If it's a synthetic task event, open the Task popup instead (view mode)
+    if (typeof event._id === 'string' && event._id.startsWith('task-')) {
+      const taskId = event._id.replace(/^task-/, '');
+      const t = (tasks || []).find((x) => x._id === taskId) || null;
+      setSelectedTask(t);
+      setTaskStartInEdit(false);
+      setShowTaskPopup(true);
+      return;
+    }
+    // If it's a synthetic lesson event, open the Lesson popup instead (view mode)
+    if (typeof event._id === 'string' && event._id.startsWith('lesson-')) {
+      const lessonId = event._id.replace(/^lesson-/, '');
+      const l = (lessons || []).find((x) => x._id === lessonId) || null;
+      setSelectedLesson(l);
+      setLessonStartInEdit(false);
+      setShowLessonPopup(true);
       return;
     }
     // Open the event details popup without changing the current calendar view or selected date
@@ -358,6 +409,32 @@ const CalendarPage: React.FC = () => {
                 isLoading={loading}
                 onEventClick={handleEventClick}
                 onEventEdit={(event: CalendarEvent) => {
+                  // Route edit to appropriate popup
+                  if (typeof event._id === 'string' && event._id.startsWith('project-')) {
+                    const projectId = event._id.replace(/^project-/, '');
+                    const proj = (projects || []).find((p) => p._id === projectId) || null;
+                    setSelectedProject(proj);
+                    setProjectStartInEdit(true);
+                    setShowProjectPopup(true);
+                    return;
+                  }
+                  if (typeof event._id === 'string' && event._id.startsWith('task-')) {
+                    const taskId = event._id.replace(/^task-/, '');
+                    const t = (tasks || []).find((x) => x._id === taskId) || null;
+                    setSelectedTask(t);
+                    setTaskStartInEdit(true);
+                    setShowTaskPopup(true);
+                    return;
+                  }
+                  if (typeof event._id === 'string' && event._id.startsWith('lesson-')) {
+                    const lessonId = event._id.replace(/^lesson-/, '');
+                    const l = (lessons || []).find((x) => x._id === lessonId) || null;
+                    setSelectedLesson(l);
+                    setLessonStartInEdit(true);
+                    setShowLessonPopup(true);
+                    return;
+                  }
+                  // Default: edit real calendar event
                   setSelectedEvent(event);
                   setDayPopupDate(null);
                   setStartInEdit(true);
@@ -414,6 +491,47 @@ const CalendarPage: React.FC = () => {
           onClose={() => { setShowProjectPopup(false); setSelectedProject(null); }}
           onSave={handleProjectSave}
           onDelete={selectedProject ? () => handleProjectDelete(selectedProject._id) : undefined}
+          startInEdit={projectStartInEdit}
+          onTasksChanged={async () => {
+            // Keep calendar and project views in sync when tasks are assigned/created from this popup
+            try {
+              await Promise.all([refreshTasks(), refreshProjects()]);
+            } catch { /* noop */ }
+          }}
+        />
+      )}
+
+      {/* Lesson Popup for synthetic lesson events */}
+      {showLessonPopup && (
+        <LessonCardPopup
+          lesson={selectedLesson ?? undefined}
+          isOpen={showLessonPopup}
+          onClose={() => { setShowLessonPopup(false); setSelectedLesson(null); }}
+          onSave={async (lesson: Lesson) => {
+            try {
+              if (lesson._id.startsWith('temp-')) {
+                const { _id, createdAt, updatedAt, ...data } = lesson as any;
+                await apiService.createLesson(data as any);
+              } else {
+                const { _id, createdAt, updatedAt, ...data } = lesson as any;
+                await apiService.updateLesson(lesson._id, data as any);
+              }
+              setShowLessonPopup(false);
+              await refreshLessons();
+            } catch (e) {
+              console.error(e);
+            }
+          }}
+          onDelete={selectedLesson ? async () => {
+            try {
+              await apiService.deleteLesson(selectedLesson._id);
+              setShowLessonPopup(false);
+              await refreshLessons();
+            } catch (e) {
+              console.error(e);
+            }
+          } : undefined}
+          startInEdit={lessonStartInEdit}
         />
       )}
 
