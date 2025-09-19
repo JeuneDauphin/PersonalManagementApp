@@ -267,11 +267,20 @@ const CalendarPage: React.FC = () => {
 
   const handleEventDelete = async (eventId: string) => {
     try {
-      // Prevent deleting synthetic events (project/task) from the calendar
-      if (eventId.startsWith('project-') || eventId.startsWith('task-')) {
-        setNotif({ open: true, type: 'info', title: 'Not deletable from calendar', message: 'This item reflects a project or task. Edit it from its page or change its dates here.' });
+      if (eventId.startsWith('project-')) {
+        const projectId = eventId.replace(/^project-/, '');
+        await apiService.deleteProject(projectId);
+        // Deleting a project may detach tasks from it; refresh both
+        await Promise.all([refreshProjects(), refreshTasks()]);
         return;
       }
+      if (eventId.startsWith('task-')) {
+        const taskId = eventId.replace(/^task-/, '');
+        await apiService.deleteTask(taskId);
+        await refreshTasks();
+        return;
+      }
+      // Real calendar event
       await apiService.deleteEvent(eventId);
       await refresh();
     } catch (error) {
