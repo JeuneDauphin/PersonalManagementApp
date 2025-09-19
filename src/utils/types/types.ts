@@ -5,7 +5,7 @@ export type Status = 'pending' | 'in-progress' | 'completed' | 'cancelled';
 export type ProjectStatus = 'planning' | 'active' | 'on-hold' | 'completed' | 'cancelled';
 export type LessonType = 'lecture' | 'seminar' | 'lab' | 'tutorial' | 'exam';
 export type TestType = 'quiz' | 'midterm' | 'final' | 'assignment' | 'project';
-export type EventType = 'meeting' | 'deadline' | 'appointment' | 'reminder' | 'personal';
+export type EventType = 'meeting' | 'deadline' | 'appointment' | 'reminder' | 'personal' | 'holiday';
 export type ContactType = 'personal' | 'work' | 'school' | 'client' | 'vendor';
 
 export type FilterCriteria = {

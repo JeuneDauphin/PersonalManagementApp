@@ -19,7 +19,7 @@ const calendarEventSchema = new Schema(
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     isAllDay: { type: Boolean, default: false },
-    type: { type: String, enum: ['meeting', 'deadline', 'appointment', 'reminder', 'personal'], required: true },
+    type: { type: String, enum: ['meeting', 'deadline', 'appointment', 'reminder', 'personal', 'holiday'], required: true },
     location: { type: String, trim: true },
     attendees: { type: [String], default: [] }, // Contact IDs
     reminders: { type: [Number], default: [] }, // minutes
