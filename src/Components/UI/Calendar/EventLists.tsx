@@ -33,6 +33,7 @@ const EventLists: React.FC<EventListsProps> = ({
       case 'appointment': return 'bg-green-500';
       case 'reminder': return 'bg-yellow-500';
       case 'personal': return 'bg-purple-500';
+      case 'holiday': return 'bg-emerald-500';
       default: return 'bg-gray-500';
     }
   };
@@ -175,6 +176,7 @@ const EventLists: React.FC<EventListsProps> = ({
                       event.type === 'appointment' ? 'bg-green-600 text-green-100' :
                         event.type === 'reminder' ? 'bg-yellow-600 text-yellow-900' :
                           event.type === 'personal' ? 'bg-purple-600 text-purple-100' :
+                          event.type === 'holiday' ? 'bg-emerald-600 text-emerald-100' :
                             'bg-gray-600 text-gray-100'
                   }
                 `}>

@@ -170,6 +170,10 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => {
       let next = { ...prev, [field]: value } as typeof prev;
+      // Convenience: holidays default to all-day
+      if (field === 'type' && value === 'holiday') {
+        next.isAllDay = true;
+      }
       // If user moves start beyond current end, auto-bump end to keep it valid
       if ((field === 'startDate' || field === 'endDate' || field === 'isAllDay') && next.startDate && next.endDate) {
         const s = new Date(next.startDate);
@@ -241,6 +245,7 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
       case 'appointment': return 'text-green-400';
       case 'reminder': return 'text-yellow-400';
       case 'personal': return 'text-purple-400';
+      case 'holiday': return 'text-emerald-400';
       default: return 'text-gray-400';
     }
   };
@@ -404,6 +409,7 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
                   <option value="appointment">Appointment</option>
                   <option value="reminder">Reminder</option>
                   <option value="personal">Personal</option>
+                  <option value="holiday">Holiday</option>
                 </select>
               </div>
 

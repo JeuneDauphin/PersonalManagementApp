@@ -29,6 +29,7 @@ function getEventColor(type: string): string {
     case 'appointment': return '#10b981'; // green
     case 'reminder': return '#f59e0b'; // amber
     case 'personal': return '#8b5cf6'; // purple
+    case 'holiday': return '#22c55e'; // green (distinct bright)
     default: return '#6b7280'; // gray
   }
 }
