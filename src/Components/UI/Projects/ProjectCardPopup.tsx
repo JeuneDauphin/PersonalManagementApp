@@ -3,10 +3,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, Calendar, GitBranch, Link, Tag, Users } from 'lucide-react';
 import MiniCalendar from '../Calendar/MiniCalendar';
 import { format as fmt } from 'date-fns';
-import { Project, Contact } from '../../../utils/interfaces/interfaces';
+import { Project, Contact, Task } from '../../../utils/interfaces/interfaces';
 import { Priority, ProjectStatus } from '../../../utils/types/types';
 import Button from '../Button';
 import { apiService } from '../../../utils/api/Api';
+import TaskCardPopup from '../Tasks/TaskCardPop';
 
 interface ProjectCardPopupProps {
   project?: Project | null;
@@ -16,6 +17,8 @@ interface ProjectCardPopupProps {
   onDelete?: () => void;
   // If true and a project is provided, open directly in edit mode
   startInEdit?: boolean;
+  // Notify parent that tasks linked to this project changed (created/assigned/updated)
+  onTasksChanged?: () => void;
 }
 
 const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
@@ -25,6 +28,7 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
   onSave,
   onDelete,
   startInEdit,
+  onTasksChanged,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -51,6 +55,14 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+
+  // Task actions state (create/assign) similar to ProjectCard
+  const [unassignedTasks, setUnassignedTasks] = useState<Task[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [selectedAssignTaskId, setSelectedAssignTaskId] = useState('');
+  const [showTaskPopup, setShowTaskPopup] = useState(false);
+  const [tempTask, setTempTask] = useState<Task | null>(null);
 
   useEffect(() => {
     if (project) {
@@ -104,6 +116,23 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
       .catch(() => { /* ignore */ })
       .finally(() => { if (!ignore) setContactsLoading(false); });
     return () => { ignore = true; };
+  }, [isOpen]);
+
+  // Load unassigned tasks when popup opens (for assignment)
+  useEffect(() => {
+    if (!isOpen) return;
+    const loadUnassigned = async () => {
+      setLoadingTasks(true);
+      try {
+        const all = await apiService.getTasks();
+        setUnassignedTasks(all.filter((t: any) => !(t as any).project && !(t as any).projectId));
+      } catch (e) {
+        // ignore
+      } finally {
+        setLoadingTasks(false);
+      }
+    };
+    loadUnassigned();
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -199,13 +228,21 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+  const formatDate = (input: unknown) => {
+    if (!input) return '—';
+    const d = input instanceof Date ? input : new Date(input as any);
+    if (isNaN(d.getTime())) return '—';
+    const locale = (typeof navigator !== 'undefined' && navigator.language) ? navigator.language : 'en-US';
+    try {
+      return d.toLocaleDateString(locale, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    } catch {
+      return d.toDateString();
+    }
   };
 
   const filteredContacts = useMemo(() => {
@@ -231,6 +268,54 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
     const c = contacts.find(ct => ct._id === id);
     if (!c) return id;
     return `${c.firstName} ${c.lastName}`.trim();
+  };
+
+  // Assign an existing task to this project
+  const handleAssign = async () => {
+    if (!selectedAssignTaskId || !project?._id) return;
+    try {
+      setAssigning(true);
+      await apiService.updateTask(selectedAssignTaskId, { projectId: project._id } as any);
+      setSelectedAssignTaskId('');
+      // refresh unassigned list and recompute progress
+      try {
+        const all = await apiService.getTasks();
+        setUnassignedTasks(all.filter((t: any) => !(t as any).project && !(t as any).projectId));
+      } catch { }
+      try { await apiService.recomputeAndSyncProjectProgress(project._id); } catch { }
+      // notify parent so calendar/projects can refresh
+      try { onTasksChanged?.(); } catch { /* noop */ }
+    } catch (e) {
+      // ignore
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  // Save a task from the popup (create/update)
+  const handleTaskSave = async (task: Task) => {
+    try {
+      if (task._id.startsWith('temp-')) {
+        const { _id, createdAt, updatedAt, ...data } = task as any;
+        await apiService.createTask({ ...data, projectId: project?._id } as any);
+      } else {
+        const { _id, createdAt, updatedAt, ...data } = task as any;
+        await apiService.updateTask(task._id, data as any);
+      }
+      // recompute project progress after creation/update
+      try { if (project?._id) await apiService.recomputeAndSyncProjectProgress(project._id); } catch { }
+      setShowTaskPopup(false);
+      setTempTask(null);
+      // refresh unassigned list
+      try {
+        const all = await apiService.getTasks();
+        setUnassignedTasks(all.filter((t: any) => !(t as any).project && !(t as any).projectId));
+      } catch { }
+      // notify parent about changes to tasks so it can refresh views
+      try { onTasksChanged?.(); } catch { /* noop */ }
+    } catch (e) {
+      // ignore
+    }
   };
 
   return (
@@ -554,6 +639,41 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                   )}
                 </div>
               </div>
+
+              {/* Task Actions */}
+              {project?._id && (
+                <div className="mt-6 border-t border-gray-700 pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-body font-medium text-gray-300">Task Actions</h3>
+                    <Button
+                      text="Create Task"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setTempTask({ _id: `temp-${Date.now()}`, title: '', description: '', status: 'pending', priority: 'medium', dueDate: undefined, project: undefined } as any); setShowTaskPopup(true); }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedAssignTaskId}
+                      onChange={(e) => setSelectedAssignTaskId(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Assign existing…</option>
+                      {loadingTasks && <option>Loading…</option>}
+                      {!loadingTasks && unassignedTasks.map(t => (
+                        <option key={t._id} value={t._id}>{t.title}</option>
+                      ))}
+                    </select>
+                    <Button
+                      text={assigning ? 'Assigning…' : 'Assign'}
+                      variant="primary"
+                      size="sm"
+                      onClick={handleAssign}
+                      disabled={!selectedAssignTaskId || assigning}
+                    />
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             // View Mode
@@ -599,7 +719,7 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                   <Calendar size={16} className="text-gray-400" />
                   <div>
                     <div className="text-small text-gray-400">Start Date</div>
-                    <div className="text-body text-white">{formatDate(project?.startDate?.toString() || '')}</div>
+                      <div className="text-body text-white">{formatDate(project?.startDate)}</div>
                   </div>
                 </div>
                 {project?.endDate && (
@@ -607,7 +727,7 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                     <Calendar size={16} className="text-gray-400" />
                     <div>
                       <div className="text-small text-gray-400">End Date</div>
-                      <div className="text-body text-white">{formatDate(project.endDate.toString())}</div>
+                        <div className="text-body text-white">{formatDate(project.endDate)}</div>
                     </div>
                   </div>
                 )}
@@ -713,6 +833,41 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                   <div className="text-small text-gray-400">Tags</div>
                 </div>
               </div>
+
+                {/* Task Actions (also available in view mode) */}
+                {project?._id && (
+                  <div className="mt-6 border-t border-gray-700 pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-body font-medium text-gray-300">Task Actions</h3>
+                      <Button
+                        text="Create Task"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setTempTask({ _id: `temp-${Date.now()}`, title: '', description: '', status: 'pending', priority: 'medium', dueDate: undefined, project: undefined } as any); setShowTaskPopup(true); }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={selectedAssignTaskId}
+                        onChange={(e) => setSelectedAssignTaskId(e.target.value)}
+                        className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Assign existing…</option>
+                        {loadingTasks && <option>Loading…</option>}
+                        {!loadingTasks && unassignedTasks.map(t => (
+                          <option key={t._id} value={t._id}>{t.title}</option>
+                        ))}
+                      </select>
+                      <Button
+                        text={assigning ? 'Assigning…' : 'Assign'}
+                        variant="primary"
+                        size="sm"
+                        onClick={handleAssign}
+                        disabled={!selectedAssignTaskId || assigning}
+                      />
+                    </div>
+                  </div>
+                )}
             </>
           )}
         </div>
@@ -763,6 +918,16 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
           </div>
         </div>
       </div>
+      {showTaskPopup && (
+        <TaskCardPopup
+          isOpen={showTaskPopup}
+          onClose={() => { setShowTaskPopup(false); setTempTask(null); }}
+          task={tempTask as any}
+          onSave={handleTaskSave as any}
+          startInEdit={true}
+          defaultProjectId={project?._id}
+        />
+      )}
     </div>
   );
 };

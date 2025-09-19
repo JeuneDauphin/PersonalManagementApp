@@ -328,13 +328,22 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
                               {isProject && taskDots.length > 0 && (
                                 <div className="pointer-events-none absolute inset-0">
                                   {taskDots.map((dot, idx) => (
-                                    <button
+                                    <div
                                       key={idx}
+                                      role="button"
+                                      aria-label={(dot as any).title}
+                                      title={(dot as any).title}
                                       className="absolute block w-3 h-3 rounded-full ring-2 ring-white/90 shadow-sm pointer-events-auto hover:scale-110 transition-transform"
                                       style={{ left: `calc(${dot.leftPct}% + ${dot.offsetPx}px)`, top: '50%', transform: 'translate(-50%, -50%)', backgroundColor: (dot as any).color }}
-                                      title={(dot as any).title}
                                       onClick={(e) => { e.stopPropagation(); const t = (dot as any).task as Task | undefined; if (t) onTaskDotClick?.(t); }}
-                                      aria-label={(dot as any).title}
+                                      tabIndex={0}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          const t = (dot as any).task as Task | undefined; if (t) onTaskDotClick?.(t);
+                                        }
+                                      }}
                                     />
                                   ))}
                                 </div>
