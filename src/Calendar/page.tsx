@@ -395,7 +395,6 @@ const CalendarPage: React.FC = () => {
               setSelectedDate(date);
               // Keep current view; Calendar centers via currentDate prop
             }}
-            events={events}
           />
 
           {/* Events List for Selected Date */}

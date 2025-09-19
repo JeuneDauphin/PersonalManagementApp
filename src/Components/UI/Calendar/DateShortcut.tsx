@@ -1,7 +1,6 @@
 // Mini calendar component for quick date navigation
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { CalendarEvent } from '../../../utils/interfaces/interfaces';
 import {
   startOfMonth,
   startOfWeek,
@@ -16,13 +15,11 @@ import {
 interface DateShortcutProps {
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
-  events?: CalendarEvent[]; // events provided by parent to reflect live updates
 }
 
 const DateShortcut: React.FC<DateShortcutProps> = ({
   selectedDate,
   onDateSelect,
-  events = [],
 }) => {
   const [currentMonth, setCurrentMonth] = useState(selectedDate);
 
@@ -42,15 +39,7 @@ const DateShortcut: React.FC<DateShortcutProps> = ({
     }
   }, [selectedDate]);
 
-  // Check if a date has events
-  const hasEvents = (date: Date) => {
-    return (events || []).some(evt => {
-      const eventStart = new Date(evt.startDate);
-      const eventEnd = new Date(evt.endDate);
-      const isMultiDay = !isSameDay(eventStart, eventEnd);
-      return isSameDay(eventStart, date) || (isMultiDay && isSameDay(eventEnd, date));
-    });
-  };
+  // Event dots removed: we no longer calculate per-day event presence here.
 
   const goToPreviousMonth = () => {
     setCurrentMonth(subMonths(currentMonth, 1));
@@ -75,7 +64,7 @@ const DateShortcut: React.FC<DateShortcutProps> = ({
       const isCurrentMonth = isSameMonth(dayToRender, monthStart);
       const isSelected = isSameDay(dayToRender, selectedDate);
       const isToday = isSameDay(dayToRender, new Date());
-      const dayHasEvents = hasEvents(dayToRender);
+  // Dots previously indicating events have been removed.
 
       days.push(
         <button
@@ -100,13 +89,6 @@ const DateShortcut: React.FC<DateShortcutProps> = ({
           `}
         >
           {format(dayToRender, 'd')}
-          {dayHasEvents && isCurrentMonth && (
-            <div className={`
-              absolute bottom-0.5 left-1/2 transform -translate-x-1/2
-              w-1 h-1 rounded-full
-              ${isSelected ? 'bg-white' : 'bg-blue-400'}
-            `} />
-          )}
         </button>
       );
 
@@ -178,15 +160,7 @@ const DateShortcut: React.FC<DateShortcutProps> = ({
         {renderWeeks()}
       </div>
 
-      {/* Legend */}
-      <div className="mt-3 pt-3 border-t border-gray-700">
-        <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-            <span>Has events</span>
-          </div>
-        </div>
-      </div>
+      {/* Legend removed: event dots are no longer displayed in the mini calendar. */}
     </div>
   );
 };
