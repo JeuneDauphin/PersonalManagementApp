@@ -62,7 +62,8 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         priority: task.priority,
         status: task.status,
         type: task.type || '',
-        dueDate: new Date(task.dueDate).toISOString().slice(0, 16),
+        // Some legacy tasks might not have a dueDate; guard accordingly
+        dueDate: task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : '',
         projectId: (task as any).projectId || (task as any).project || '',
         lessonId: (task as any).lessonId || (task as any).lesson || '',
         tags: task.tags || [],
@@ -216,8 +217,22 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
+  const formatDate = (input: unknown) => {
+    if (!input) return 'No due date';
+    let d: Date;
+    if (input instanceof Date) {
+      d = input;
+    } else if (typeof input === 'string' || typeof input === 'number') {
+      d = new Date(input);
+    } else {
+      // fallback if an unexpected type is passed
+      d = new Date(String(input));
+    }
+
+    if (isNaN(d.getTime())) return 'No due date';
+
+    const locale = typeof navigator !== 'undefined' ? navigator.language : undefined;
+    return d.toLocaleString(locale, {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -263,7 +278,12 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+    >
       {/* Blurry Backdrop */}
       <div
         className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
@@ -592,7 +612,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                 {/* Due Date */}
                 <div className="flex items-center gap-2 text-body text-gray-300">
                   <Calendar size={16} />
-                  <span>Due: {formatDate(task.dueDate.toString())}</span>
+                  <span>Due: {formatDate(task.dueDate)}</span>
                 </div>
 
                 {/* Hours */}
