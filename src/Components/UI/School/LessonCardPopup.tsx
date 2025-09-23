@@ -6,6 +6,7 @@ import { format as fmt } from 'date-fns';
 import { Lesson } from '../../../utils/interfaces/interfaces';
 import { LessonType } from '../../../utils/types/types';
 import Button from '../Button';
+import TimePicker from '../TimePicker/TimePicker';
 
 interface LessonCardPopupProps {
   lesson?: Lesson | null;
@@ -40,6 +41,7 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
     completed: false,
   });
   const [showDateCal, setShowDateCal] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [materialInput, setMaterialInput] = useState('');
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -290,15 +292,34 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
                   {shouldShowError('date') && (<p className="mt-1 text-xs text-red-400">{errors.date}</p>)}
                 </div>
 
-                <div>
+                <div className="relative">
                   <label className="block text-body text-gray-300 mb-2">Time *</label>
-                  <input
-                    type="time"
-                    value={formData.time}
-                    onChange={(e) => handleInputChange('time', e.target.value)}
-                    onBlur={() => markTouched('time')}
-                    className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:ring-2 ${shouldShowError('time') ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'}`}
-                  />
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowTimePicker(v => !v)}
+                      onBlur={() => markTouched('time')}
+                      className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white text-left ${shouldShowError('time') ? 'border-red-500' : 'border-gray-600'}`}
+                    >
+                      {formData.time || '--:--'}
+                    </button>
+                    {showTimePicker && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="bg-gray-800 rounded-md border border-gray-700">
+                          <TimePicker
+                            value={formData.time}
+                            onChange={(hhmm) => { handleInputChange('time', hhmm); }}
+                            onClose={() => setShowTimePicker(false)}
+                            minuteStep={5}
+                            compact
+                            itemHeight={24}
+                            visibleCount={3}
+                            columnWidthClass="w-10"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   {shouldShowError('time') && (
                     <p className="mt-1 text-xs text-red-400">{errors.time}</p>
                   )}

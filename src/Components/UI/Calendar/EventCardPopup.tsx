@@ -7,6 +7,7 @@ import Button from '../Button';
 import { apiService } from '../../../utils/api/Api';
 import { format as fmt } from 'date-fns';
 import MiniCalendar from './MiniCalendar';
+import TimePicker from '../TimePicker/TimePicker';
 
 interface EventCardPopupProps {
   event?: CalendarEvent | null;
@@ -49,6 +50,8 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [showStartCal, setShowStartCal] = useState(false);
   const [showEndCal, setShowEndCal] = useState(false);
+  const [showStartTime, setShowStartTime] = useState(false);
+  const [showEndTime, setShowEndTime] = useState(false);
 
   useEffect(() => {
     if (event) {
@@ -337,17 +340,32 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
                       </div>
                     </button>
                     {!formData.isAllDay && (
-                      <input
-                        type="time"
-                        value={fmt(new Date(formData.startDate), 'HH:mm')}
-                        onChange={(e) => handleInputChange('startDate', withTime(formData.startDate, e.target.value))}
-                        readOnly
-                        onKeyDown={(e) => e.preventDefault()}
-                        inputMode="none"
-                        aria-readonly="true"
-                        className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer"
-                        title="Use the picker to select time"
-                      />
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => { setShowStartTime(v => !v); setShowEndTime(false); }}
+                          className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white min-w-[96px] text-left"
+                          title="Pick time"
+                        >
+                          {fmt(new Date(formData.startDate), 'HH:mm')}
+                        </button>
+                        {showStartTime && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="bg-gray-800 rounded-md border border-gray-700">
+                              <TimePicker
+                                value={fmt(new Date(formData.startDate), 'HH:mm')}
+                                onChange={(hhmm) => { handleInputChange('startDate', withTime(formData.startDate, hhmm)); }}
+                                onClose={() => setShowStartTime(false)}
+                                minuteStep={5}
+                                compact
+                                itemHeight={24}
+                                visibleCount={3}
+                                columnWidthClass="w-10"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                   {showStartCal && (
@@ -357,6 +375,7 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
                       onClose={() => setShowStartCal(false)}
                     />
                   )}
+                  {/* Inline compact wheel is rendered inside the button above */}
                   {shouldShowError('startDate') && (
                     <p className="mt-1 text-xs text-red-400">{errors.startDate}</p>
                   )}
@@ -379,17 +398,32 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
                       </div>
                     </button>
                     {!formData.isAllDay && (
-                      <input
-                        type="time"
-                        value={fmt(new Date(formData.endDate), 'HH:mm')}
-                        onChange={(e) => handleInputChange('endDate', withTime(formData.endDate, e.target.value))}
-                        readOnly
-                        onKeyDown={(e) => e.preventDefault()}
-                        inputMode="none"
-                        aria-readonly="true"
-                        className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer"
-                        title="Use the picker to select time"
-                      />
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => { setShowEndTime(v => !v); setShowStartTime(false); }}
+                          className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white min-w-[96px] text-left"
+                          title="Pick time"
+                        >
+                          {fmt(new Date(formData.endDate), 'HH:mm')}
+                        </button>
+                        {showEndTime && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="bg-gray-800 rounded-md border border-gray-700">
+                              <TimePicker
+                                value={fmt(new Date(formData.endDate), 'HH:mm')}
+                                onChange={(hhmm) => { handleInputChange('endDate', withTime(formData.endDate, hhmm)); }}
+                                onClose={() => setShowEndTime(false)}
+                                minuteStep={5}
+                                compact
+                                itemHeight={24}
+                                visibleCount={3}
+                                columnWidthClass="w-10"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                   {showEndCal && (
@@ -400,6 +434,7 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
                       minDate={new Date(formData.startDate)}
                     />
                   )}
+                  {/* Inline compact wheel is rendered inside the button above */}
                   {shouldShowError('endDate') && (
                     <p className="mt-1 text-xs text-red-400">{errors.endDate}</p>
                   )}

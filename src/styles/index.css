@@ -24,3 +24,7 @@
     line-height: 20px;
   }
 }
+
+/* Utility: hide scrollbars where supported */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

@@ -4,6 +4,7 @@ import { X, Calendar, Clock, MapPin, Trophy, FileText, Star } from 'lucide-react
 import { Test } from '../../../utils/interfaces/interfaces';
 import { TestType } from '../../../utils/types/types';
 import Button from '../Button';
+import TimePicker from '../TimePicker/TimePicker';
 
 interface TestCardPopupProps {
   test?: Test | null;
@@ -39,6 +40,7 @@ const TestCardPopup: React.FC<TestCardPopupProps> = ({
     notes: '',
   });
   const [materialInput, setMaterialInput] = useState('');
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   useEffect(() => {
     if (test) {
@@ -267,14 +269,33 @@ const TestCardPopup: React.FC<TestCardPopupProps> = ({
                   />
                 </div>
 
-                <div>
+                <div className="relative">
                   <label className="block text-body text-gray-300 mb-2">Time *</label>
-                  <input
-                    type="time"
-                    value={formData.time}
-                    onChange={(e) => handleInputChange('time', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
-                  />
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowTimePicker(v => !v)}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-left"
+                    >
+                      {formData.time || '--:--'}
+                    </button>
+                    {showTimePicker && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="bg-gray-800 rounded-md border border-gray-700">
+                          <TimePicker
+                            value={formData.time}
+                            onChange={(hhmm) => { setFormData(prev => ({ ...prev, time: hhmm })); }}
+                            onClose={() => setShowTimePicker(false)}
+                            minuteStep={5}
+                            compact
+                            itemHeight={24}
+                            visibleCount={3}
+                            columnWidthClass="w-10"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>

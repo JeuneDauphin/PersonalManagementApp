@@ -7,6 +7,7 @@ import { Task, Contact, Project, Lesson } from '../../../utils/interfaces/interf
 import { Priority, Status } from '../../../utils/types/types';
 import Button from '../Button';
 import { apiService } from '../../../utils/api/Api';
+import TimePicker from '../TimePicker/TimePicker';
 
 interface TaskCardPopupProps {
   task?: Task | null;
@@ -44,6 +45,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
     contacts: [] as string[],
   });
   const [showDueCal, setShowDueCal] = useState(false);
+  const [showDueTime, setShowDueTime] = useState(false);
   const presetTypes = ['Homework', 'Sub-Project mission'];
   const [typeSelect, setTypeSelect] = useState<string>('');
   const [customType, setCustomType] = useState<string>('');
@@ -438,17 +440,32 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                       </span>
                     </div>
                   </button>
-                  <input
-                    type="time"
-                    value={formData.dueDate ? fmt(new Date(formData.dueDate), 'HH:mm') : ''}
-                    onChange={(e) => handleInputChange('dueDate', withTime(formData.dueDate, e.target.value))}
-                    readOnly
-                    onKeyDown={(e) => e.preventDefault()}
-                    inputMode="none"
-                    aria-readonly="true"
-                    className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer"
-                    title="Use the picker to select time"
-                  />
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowDueTime(v => !v)}
+                      className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white min-w-[96px] text-left"
+                      title="Pick time"
+                    >
+                      {formData.dueDate ? fmt(new Date(formData.dueDate), 'HH:mm') : '--:--'}
+                    </button>
+                    {showDueTime && formData.dueDate && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="bg-gray-800 rounded-md border border-gray-700">
+                          <TimePicker
+                            value={fmt(new Date(formData.dueDate), 'HH:mm')}
+                            onChange={(hhmm) => { handleInputChange('dueDate', withTime(formData.dueDate, hhmm)); }}
+                            onClose={() => setShowDueTime(false)}
+                            minuteStep={5}
+                            compact
+                            itemHeight={24}
+                            visibleCount={3}
+                            columnWidthClass="w-10"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {showDueCal && formData.dueDate && (
                   <MiniCalendar
@@ -457,6 +474,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                     onClose={() => setShowDueCal(false)}
                   />
                 )}
+                {/* Wheel is rendered inline inside the button above */}
               </div>
 
               {/* Associations */}
