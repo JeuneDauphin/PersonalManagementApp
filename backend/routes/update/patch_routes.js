@@ -109,8 +109,13 @@ router.patch('/tasks/:id', async (req, res) => {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
     const updates = { ...req.body };
-    if (updates.projectId && !updates.project) updates.project = updates.projectId;
-    if (updates.lessonId && !updates.lesson) updates.lesson = updates.lessonId;
+    // Map projectId/lessonId to actual refs even when null is provided
+    if (Object.prototype.hasOwnProperty.call(updates, 'projectId') && !Object.prototype.hasOwnProperty.call(updates, 'project')) {
+      updates.project = updates.projectId;
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, 'lessonId') && !Object.prototype.hasOwnProperty.call(updates, 'lesson')) {
+      updates.lesson = updates.lessonId;
+    }
 
     // Fetch existing to compare relations
     const before = await Task.findById(id).select('project lesson');
@@ -150,8 +155,13 @@ router.put('/tasks/:id', async (req, res) => {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
     const updates = { ...req.body };
-    if (updates.projectId && !updates.project) updates.project = updates.projectId;
-    if (updates.lessonId && !updates.lesson) updates.lesson = updates.lessonId;
+    // Map projectId/lessonId to actual refs even when null is provided
+    if (Object.prototype.hasOwnProperty.call(updates, 'projectId') && !Object.prototype.hasOwnProperty.call(updates, 'project')) {
+      updates.project = updates.projectId;
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, 'lessonId') && !Object.prototype.hasOwnProperty.call(updates, 'lesson')) {
+      updates.lesson = updates.lessonId;
+    }
 
     // Fetch existing to compare relations
     const before = await Task.findById(id).select('project lesson');

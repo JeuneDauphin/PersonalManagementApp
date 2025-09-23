@@ -11,6 +11,8 @@ interface TaskListsProps {
   onTaskEdit?: (task: Task) => void;
   onTaskDelete?: (taskId: string) => void;
   onTaskToggle?: (task: Task) => void;
+  // Optional unassign action for contexts like project detail
+  onTaskUnassign?: (taskId: string) => void;
   showActions?: boolean;
 }
 
@@ -21,6 +23,7 @@ const TaskLists: React.FC<TaskListsProps> = ({
   onTaskEdit,
   onTaskDelete,
   onTaskToggle,
+  onTaskUnassign,
   showActions = true,
 }) => {
   const getPriorityColor = (priority: string) => {
@@ -163,6 +166,15 @@ const TaskLists: React.FC<TaskListsProps> = ({
               >
                 <CheckSquare size={14} />
               </button>
+              {onTaskUnassign && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onTaskUnassign(task._id); }}
+                  className="px-2 py-1 text-xs text-orange-300 hover:text-white hover:bg-orange-700/30 rounded transition-colors"
+                  title="Unassign from project"
+                >
+                  Unassign
+                </button>
+              )}
               <Button
                 action="edit"
                 onClick={(e) => {

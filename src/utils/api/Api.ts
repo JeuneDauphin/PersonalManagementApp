@@ -104,6 +104,15 @@ class ApiService {
     });
   }
 
+  // Remove association between a task and a project without deleting the task
+  async unassignTaskFromProject(taskId: string): Promise<Task> {
+    // Send explicit projectId: null so backend clears the relation and maintains reverse array
+    return this.request<Task>(`/tasks/${taskId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ projectId: null } as any),
+    });
+  }
+
   async deleteTask(id: string): Promise<void> {
     return this.request<void>(`/tasks/${id}`, {
       method: 'DELETE',
