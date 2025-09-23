@@ -273,6 +273,21 @@ const ProjectDetailPage: React.FC = () => {
 		}
 	};
 
+	const handleTaskUnassign = async (taskId: string) => {
+		if (!project) return;
+		// Optimistic: move from tasks to unassigned
+		setTasks(prev => prev.filter(t => t._id !== taskId));
+		try {
+			await apiService.unassignTaskFromProject(taskId);
+			await refreshTasks();
+		} catch (e) {
+			console.error('Failed to unassign task', e);
+			// fallback to re-sync lists
+			await refreshTasks();
+		}
+		try { await apiService.recomputeAndSyncProjectProgress(project._id); } catch {}
+	};
+
 	const getPriorityColor = (priority: Priority) => {
 		switch (priority) {
 			case 'urgent': return 'text-red-400 bg-red-600';
@@ -736,6 +751,7 @@ const ProjectDetailPage: React.FC = () => {
 										onTaskEdit={(t) => { setSelectedTask(t); setShowTaskPopup(true); }}
 											onTaskDelete={(id) => handleTaskDelete(id)}
 											onTaskToggle={async (t) => { await apiService.updateTask(t._id, { status: t.status === 'completed' ? 'pending' : 'completed' }); await refreshTasks(); await recomputeAndSyncProgress(); }}
+											onTaskUnassign={(id) => handleTaskUnassign(id)}
 										showActions={true}
 									/>
 								)}
