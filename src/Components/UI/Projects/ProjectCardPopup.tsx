@@ -8,6 +8,7 @@ import { Priority, ProjectStatus } from '../../../utils/types/types';
 import Button from '../Button';
 import { apiService } from '../../../utils/api/Api';
 import TaskCardPopup from '../Tasks/TaskCardPop';
+import TimePicker from '../TimePicker/TimePicker';
 
 interface ProjectCardPopupProps {
   project?: Project | null;
@@ -63,6 +64,8 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
   const [selectedAssignTaskId, setSelectedAssignTaskId] = useState('');
   const [showTaskPopup, setShowTaskPopup] = useState(false);
   const [tempTask, setTempTask] = useState<Task | null>(null);
+  const [showStartTime, setShowStartTime] = useState(false);
+  const [showEndTime, setShowEndTime] = useState(false);
 
   useEffect(() => {
     if (project) {
@@ -426,23 +429,38 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                         <span className="whitespace-nowrap">{fmt(new Date(formData.startDate), 'PP')}</span>
                       </div>
                     </button>
-                    <input
-                      type="time"
-                      value={formData.startDate ? fmt(new Date(formData.startDate), 'HH:mm') : ''}
-                      onChange={(e) => {
-                        const [hh, mm] = e.target.value.split(':').map(Number);
-                        const d = new Date(formData.startDate || new Date());
-                        d.setHours(hh, mm, 0, 0);
-                        const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-                        handleInputChange('startDate', iso);
-                      }}
-                      readOnly
-                      onKeyDown={(e) => e.preventDefault()}
-                      inputMode="none"
-                      aria-readonly="true"
-                      className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer"
-                      title="Use the picker to select time"
-                    />
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => { setShowStartTime(v => !v); setShowEndTime(false); }}
+                        className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white min-w-[96px] text-left"
+                        title="Pick time"
+                      >
+                        {formData.startDate ? fmt(new Date(formData.startDate), 'HH:mm') : '--:--'}
+                      </button>
+                      {showStartTime && formData.startDate && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="bg-gray-800 rounded-md border border-gray-700">
+                            <TimePicker
+                              value={fmt(new Date(formData.startDate), 'HH:mm')}
+                              onChange={(hhmm) => {
+                                const [hh, mm] = hhmm.split(':').map(Number);
+                                const d = new Date(formData.startDate);
+                                d.setHours(hh, mm, 0, 0);
+                                const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                                handleInputChange('startDate', iso);
+                              }}
+                              onClose={() => setShowStartTime(false)}
+                              minuteStep={5}
+                              compact
+                              itemHeight={24}
+                              visibleCount={3}
+                              columnWidthClass="w-10"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   {showStartCal && formData.startDate && (
                     <MiniCalendar
@@ -454,6 +472,22 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                         handleInputChange('startDate', iso);
                       }}
                       onClose={() => setShowStartCal(false)}
+                    />
+                  )}
+                  {showStartTime && formData.startDate && (
+                    <TimePicker
+                      value={fmt(new Date(formData.startDate), 'HH:mm')}
+                      onChange={(hhmm) => {
+                        const [hh, mm] = hhmm.split(':').map(Number);
+                        const d = new Date(formData.startDate);
+                        d.setHours(hh, mm, 0, 0);
+                        const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                        handleInputChange('startDate', iso);
+                        setShowStartTime(false);
+                      }}
+                      onClose={() => setShowStartTime(false)}
+                      minuteStep={5}
+                      className="left-0"
                     />
                   )}
                   {shouldShowError('startDate') && (<p className="mt-1 text-xs text-red-400">{errors.startDate}</p>)}
@@ -472,25 +506,39 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                         <span className="whitespace-nowrap">{formData.endDate ? fmt(new Date(formData.endDate), 'PP') : 'No end date'}</span>
                       </div>
                     </button>
-                    <input
-                      type="time"
-                      disabled={!formData.endDate}
-                      value={formData.endDate ? fmt(new Date(formData.endDate), 'HH:mm') : ''}
-                      onChange={(e) => {
-                        if (!formData.endDate) return;
-                        const [hh, mm] = e.target.value.split(':').map(Number);
-                        const d = new Date(formData.endDate);
-                        d.setHours(hh, mm, 0, 0);
-                        const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-                        handleInputChange('endDate', iso);
-                      }}
-                      readOnly={!!formData.endDate}
-                      onKeyDown={(e) => e.preventDefault()}
-                      inputMode="none"
-                      aria-readonly="true"
-                      className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer disabled:cursor-not-allowed"
-                      title="Use the picker to select time"
-                    />
+                    <div className="relative">
+                      <button
+                        type="button"
+                        disabled={!formData.endDate}
+                        onClick={() => { if (formData.endDate) { setShowEndTime(v => !v); setShowStartTime(false); } }}
+                        className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white min-w-[96px] text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Pick time"
+                      >
+                        {formData.endDate ? fmt(new Date(formData.endDate), 'HH:mm') : '--:--'}
+                      </button>
+                      {showEndTime && formData.endDate && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="bg-gray-800 rounded-md border border-gray-700">
+                            <TimePicker
+                              value={fmt(new Date(formData.endDate), 'HH:mm')}
+                              onChange={(hhmm) => {
+                                const [hh, mm] = hhmm.split(':').map(Number);
+                                const d = new Date(formData.endDate);
+                                d.setHours(hh, mm, 0, 0);
+                                const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                                handleInputChange('endDate', iso);
+                              }}
+                              onClose={() => setShowEndTime(false)}
+                              minuteStep={5}
+                              compact
+                              itemHeight={24}
+                              visibleCount={3}
+                              columnWidthClass="w-10"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   {showEndCal && (
                     <MiniCalendar
@@ -508,6 +556,22 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                   )}
                   {shouldShowError('endDate') && (<p className="mt-1 text-xs text-red-400">{errors.endDate}</p>)}
                 </div>
+                {showEndTime && formData.endDate && (
+                  <TimePicker
+                    value={fmt(new Date(formData.endDate), 'HH:mm')}
+                    onChange={(hhmm) => {
+                      const [hh, mm] = hhmm.split(':').map(Number);
+                      const d = new Date(formData.endDate);
+                      d.setHours(hh, mm, 0, 0);
+                      const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                      handleInputChange('endDate', iso);
+                      setShowEndTime(false);
+                    }}
+                    onClose={() => setShowEndTime(false)}
+                    minuteStep={5}
+                    className="left-0"
+                  />
+                )}
               </div>
 
               {/* Progress (Read-only info) */}
