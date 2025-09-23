@@ -574,14 +574,16 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                 )}
               </div>
 
-              {/* Progress (Read-only info) */}
-              <div>
-                <label className="block text-body text-gray-300 mb-1">Progress</label>
-                <div className="flex items-center justify-between bg-gray-700/60 border border-gray-600 rounded-lg px-3 py-2">
-                  <span className="text-white font-medium">{formData.progress}%</span>
-                  <span className="text-xs text-gray-400">Auto-calculated from completed tasks</span>
+              {/* Progress (Read-only info) - only show when editing an existing project */}
+              {project?._id && (
+                <div>
+                  <label className="block text-body text-gray-300 mb-1">Progress</label>
+                  <div className="flex items-center justify-between bg-gray-700/60 border border-gray-600 rounded-lg px-3 py-2">
+                    <span className="text-white font-medium">{formData.progress}%</span>
+                    <span className="text-xs text-gray-400">Auto-calculated from completed tasks</span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Links */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
