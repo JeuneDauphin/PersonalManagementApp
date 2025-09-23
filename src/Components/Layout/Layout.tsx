@@ -10,6 +10,9 @@ interface LayoutProps {
   onSearchChange?: (value: string) => void;
   onAddNew?: () => void;
   addButtonText?: string;
+  // Optional secondary action button (e.g., Add Task)
+  onAddSecondary?: () => void;
+  addSecondaryText?: string;
   showFilters?: boolean;
   filterOptions?: any[];
   onFilterChange?: (filters: any) => void;
@@ -22,6 +25,8 @@ const Layout: React.FC<LayoutProps> = ({
   onSearchChange,
   onAddNew,
   addButtonText,
+  onAddSecondary,
+  addSecondaryText,
   showFilters,
   filterOptions,
   onFilterChange,
@@ -49,6 +54,8 @@ const Layout: React.FC<LayoutProps> = ({
           onSearchChange={onSearchChange}
           onAddNew={onAddNew}
           addButtonText={addButtonText}
+          onAddSecondary={onAddSecondary}
+          addSecondaryText={addSecondaryText}
           showFilters={showFilters}
           filterOptions={filterOptions}
           onFilterChange={onFilterChange}
