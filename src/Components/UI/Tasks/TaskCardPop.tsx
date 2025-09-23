@@ -1,6 +1,8 @@
 // Task card popup modal for viewing/editing task details
 import React, { useState, useEffect} from 'react';
 import { X, Calendar, Clock, Tag, CheckSquare, Hash, Users, School } from 'lucide-react';
+import { format as fmt } from 'date-fns';
+import MiniCalendar from '../Calendar/MiniCalendar';
 import { Task, Contact, Project, Lesson } from '../../../utils/interfaces/interfaces';
 import { Priority, Status } from '../../../utils/types/types';
 import Button from '../Button';
@@ -41,6 +43,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
     actualHours: 0,
     contacts: [] as string[],
   });
+  const [showDueCal, setShowDueCal] = useState(false);
   const presetTypes = ['Homework', 'Sub-Project mission'];
   const [typeSelect, setTypeSelect] = useState<string>('');
   const [customType, setCustomType] = useState<string>('');
@@ -63,7 +66,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
         status: task.status,
         type: task.type || '',
         // Some legacy tasks might not have a dueDate; guard accordingly
-        dueDate: task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : '',
+        dueDate: task.dueDate ? toIsoLocal(new Date(task.dueDate)) : '',
         projectId: (task as any).projectId || (task as any).project || '',
         lessonId: (task as any).lessonId || (task as any).lesson || '',
         tags: task.tags || [],
@@ -88,13 +91,14 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
       // New task
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
+      const defaultDue = toIsoLocal(tomorrow);
       setFormData({
         title: '',
         description: '',
         priority: 'medium',
         status: 'pending',
         type: '',
-        dueDate: tomorrow.toISOString().slice(0, 16),
+        dueDate: defaultDue,
         projectId: defaultProjectId || '',
         lessonId: '',
         tags: [],
@@ -107,6 +111,21 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
       setIsEditing(true);
     }
   }, [task, startInEdit, defaultProjectId]);
+
+  // Helpers for local ISO strings compatible with datetime/time inputs
+  const toIsoLocal = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const withDateFrom = (original: string, newDate: Date) => {
+    const base = new Date(original || Date.now());
+    const merged = new Date(newDate);
+    merged.setHours(base.getHours(), base.getMinutes(), 0, 0);
+    return toIsoLocal(merged);
+  };
+  const withTime = (original: string, timeHHmm: string) => {
+    const [hh, mm] = timeHHmm.split(':').map(Number);
+    const base = new Date(original || Date.now());
+    base.setHours(hh, mm, 0, 0);
+    return toIsoLocal(base);
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -403,15 +422,41 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                   )}
                 </div>
               </div>
-              {/* Due Date */}
-              <div>
+              {/* Due Date (Mini calendar + read-only time input) */}
+              <div className="relative">
                 <label className="block text-body text-gray-300 mb-2">Due Date</label>
-                <input
-                  type="datetime-local"
-                  value={formData.dueDate}
-                  onChange={(e) => handleInputChange('dueDate', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
-                />
+                <div className="flex flex-col md:flex-row md:items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDueCal(v => !v)}
+                    className="flex-1 min-w-0 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Calendar size={16} />
+                      <span className="whitespace-nowrap">
+                        {formData.dueDate ? fmt(new Date(formData.dueDate), 'PP') : 'Select date'}
+                      </span>
+                    </div>
+                  </button>
+                  <input
+                    type="time"
+                    value={formData.dueDate ? fmt(new Date(formData.dueDate), 'HH:mm') : ''}
+                    onChange={(e) => handleInputChange('dueDate', withTime(formData.dueDate, e.target.value))}
+                    readOnly
+                    onKeyDown={(e) => e.preventDefault()}
+                    inputMode="none"
+                    aria-readonly="true"
+                    className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer"
+                    title="Use the picker to select time"
+                  />
+                </div>
+                {showDueCal && formData.dueDate && (
+                  <MiniCalendar
+                    value={new Date(formData.dueDate)}
+                    onChange={(d) => handleInputChange('dueDate', withDateFrom(formData.dueDate, d))}
+                    onClose={() => setShowDueCal(false)}
+                  />
+                )}
               </div>
 
               {/* Associations */}

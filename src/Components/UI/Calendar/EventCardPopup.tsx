@@ -341,7 +341,12 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
                         type="time"
                         value={fmt(new Date(formData.startDate), 'HH:mm')}
                         onChange={(e) => handleInputChange('startDate', withTime(formData.startDate, e.target.value))}
-                        className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                        readOnly
+                        onKeyDown={(e) => e.preventDefault()}
+                        inputMode="none"
+                        aria-readonly="true"
+                        className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer"
+                        title="Use the picker to select time"
                       />
                     )}
                   </div>
@@ -378,7 +383,12 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
                         type="time"
                         value={fmt(new Date(formData.endDate), 'HH:mm')}
                         onChange={(e) => handleInputChange('endDate', withTime(formData.endDate, e.target.value))}
-                        className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                        readOnly
+                        onKeyDown={(e) => e.preventDefault()}
+                        inputMode="none"
+                        aria-readonly="true"
+                        className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer"
+                        title="Use the picker to select time"
                       />
                     )}
                   </div>

@@ -436,7 +436,12 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                         const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
                         handleInputChange('startDate', iso);
                       }}
-                      className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                      readOnly
+                      onKeyDown={(e) => e.preventDefault()}
+                      inputMode="none"
+                      aria-readonly="true"
+                      className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer"
+                      title="Use the picker to select time"
                     />
                   </div>
                   {showStartCal && formData.startDate && (
@@ -479,7 +484,12 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                         const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
                         handleInputChange('endDate', iso);
                       }}
-                      className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                      readOnly={!!formData.endDate}
+                      onKeyDown={(e) => e.preventDefault()}
+                      inputMode="none"
+                      aria-readonly="true"
+                      className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer disabled:cursor-not-allowed"
+                      title="Use the picker to select time"
                     />
                   </div>
                   {showEndCal && (
