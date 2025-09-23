@@ -13,6 +13,8 @@ interface TopNavbarProps {
   onSearchChange?: (value: string) => void;
   onAddNew?: () => void;
   addButtonText?: string;
+  onAddSecondary?: () => void;
+  addSecondaryText?: string;
   showFilters?: boolean;
   filterOptions?: any[];
   onFilterChange?: (filters: any) => void;
@@ -25,6 +27,8 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
   onSearchChange,
   onAddNew,
   addButtonText = 'Add New',
+  onAddSecondary,
+  addSecondaryText = 'Add Task',
   showFilters = false,
   filterOptions = [],
   onFilterChange,
@@ -62,6 +66,14 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
 
         {/* Right Section - Actions and User */}
         <div className="flex items-center space-x-3">
+          {onAddSecondary && (
+            <Button
+              action="create"
+              text={addSecondaryText}
+              onClick={onAddSecondary}
+              variant="secondary"
+            />
+          )}
           {onAddNew && (
             <Button
               action="create"

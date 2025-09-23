@@ -319,6 +319,34 @@ const CalendarPage: React.FC = () => {
     setShowEventPopup(true);
   };
 
+  // Secondary action: create a Task from the calendar
+  const handleAddTaskFromCalendar = () => {
+    // Prefill due date from selectedDate, keeping current view/time context
+    const base = new Date(selectedDate);
+    // If month view (all-day), set default 9:00; else keep current hour
+    if (calendarView === 'dayGridMonth') {
+      base.setHours(9, 0, 0, 0);
+    }
+    // Build a minimal temp task for the popup in edit mode
+    const temp: Task = {
+      _id: `temp-${Date.now()}`,
+      title: '',
+      description: '',
+      priority: 'medium' as any,
+      status: 'pending' as any,
+      type: undefined,
+      dueDate: base,
+      tags: [],
+      estimatedHours: 1,
+      actualHours: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any;
+    setSelectedTask(temp);
+    setTaskStartInEdit(true);
+    setShowTaskPopup(true);
+  };
+
   const handleEventSave = async (event: CalendarEvent) => {
     try {
       // Route save based on event origin
@@ -384,6 +412,8 @@ const CalendarPage: React.FC = () => {
       title="Calendar"
       onAddNew={handleAddNew}
       addButtonText="Add Event"
+      onAddSecondary={handleAddTaskFromCalendar}
+      addSecondaryText="Add Task"
     >
       <div className="h-full flex flex-col lg:flex-row gap-4">
         {/* Left Sidebar */}
