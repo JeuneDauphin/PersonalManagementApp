@@ -66,6 +66,7 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
   const [tempTask, setTempTask] = useState<Task | null>(null);
   const [showStartTime, setShowStartTime] = useState(false);
   const [showEndTime, setShowEndTime] = useState(false);
+  const isNewProject = !project || (typeof project._id === 'string' && project._id.startsWith('temp-'));
 
   useEffect(() => {
     if (project) {
@@ -574,8 +575,8 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                 )}
               </div>
 
-              {/* Progress (Read-only info) - only show when editing an existing project */}
-              {project?._id && (
+              {/* Progress (Read-only info) - only show when editing an existing (non-temp) project */}
+              {!isNewProject && (
                 <div>
                   <label className="block text-body text-gray-300 mb-1">Progress</label>
                   <div className="flex items-center justify-between bg-gray-700/60 border border-gray-600 rounded-lg px-3 py-2">

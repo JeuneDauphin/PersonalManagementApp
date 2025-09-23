@@ -319,32 +319,32 @@ const CalendarPage: React.FC = () => {
     setShowEventPopup(true);
   };
 
-  // Secondary action: create a Task from the calendar
-  const handleAddTaskFromCalendar = () => {
-    // Prefill due date from selectedDate, keeping current view/time context
-    const base = new Date(selectedDate);
-    // If month view (all-day), set default 9:00; else keep current hour
+  // Secondary action: create a Project from the calendar
+  const handleAddProjectFromCalendar = () => {
+    // Prefill dates from selectedDate, keeping current view/time context
+    const start = new Date(selectedDate);
     if (calendarView === 'dayGridMonth') {
-      base.setHours(9, 0, 0, 0);
+      start.setHours(9, 0, 0, 0);
     }
-    // Build a minimal temp task for the popup in edit mode
-    const temp: Task = {
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    const temp: Project = {
       _id: `temp-${Date.now()}`,
-      title: '',
+      name: '',
       description: '',
+      status: 'planning' as any,
       priority: 'medium' as any,
-      status: 'pending' as any,
-      type: undefined,
-      dueDate: base,
+      startDate: start,
+      endDate: end,
+      progress: 0,
       tags: [],
-      estimatedHours: 1,
-      actualHours: 0,
+      collaborators: [],
+      tasks: [],
       createdAt: new Date(),
       updatedAt: new Date(),
     } as any;
-    setSelectedTask(temp);
-    setTaskStartInEdit(true);
-    setShowTaskPopup(true);
+    setSelectedProject(temp);
+    setProjectStartInEdit(true);
+    setShowProjectPopup(true);
   };
 
   const handleEventSave = async (event: CalendarEvent) => {
@@ -412,8 +412,31 @@ const CalendarPage: React.FC = () => {
       title="Calendar"
       onAddNew={handleAddNew}
       addButtonText="Add Event"
-      onAddSecondary={handleAddTaskFromCalendar}
-      addSecondaryText="Add Task"
+      onAddSecondary={handleAddProjectFromCalendar}
+      addSecondaryText="Add Project"
+      extraActions={[
+        { text: 'Add Task', onClick: () => {
+          const base = new Date(selectedDate);
+          if (calendarView === 'dayGridMonth') base.setHours(9, 0, 0, 0);
+          const temp: Task = {
+            _id: `temp-${Date.now()}`,
+            title: '',
+            description: '',
+            priority: 'medium' as any,
+            status: 'pending' as any,
+            type: undefined,
+            dueDate: base,
+            tags: [],
+            estimatedHours: 1,
+            actualHours: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          } as any;
+          setSelectedTask(temp);
+          setTaskStartInEdit(true);
+          setShowTaskPopup(true);
+        }, variant: 'secondary' }
+      ]}
     >
       <div className="h-full flex flex-col lg:flex-row gap-4">
         {/* Left Sidebar */}

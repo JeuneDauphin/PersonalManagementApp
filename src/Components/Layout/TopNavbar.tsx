@@ -15,6 +15,7 @@ interface TopNavbarProps {
   addButtonText?: string;
   onAddSecondary?: () => void;
   addSecondaryText?: string;
+  extraActions?: Array<{ text: string; onClick: () => void; variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'outline' | 'ghost' }>; 
   showFilters?: boolean;
   filterOptions?: any[];
   onFilterChange?: (filters: any) => void;
@@ -29,6 +30,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
   addButtonText = 'Add New',
   onAddSecondary,
   addSecondaryText = 'Add Task',
+  extraActions = [],
   showFilters = false,
   filterOptions = [],
   onFilterChange,
@@ -66,6 +68,15 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
 
         {/* Right Section - Actions and User */}
         <div className="flex items-center space-x-3">
+          {extraActions && extraActions.map((act, idx) => (
+            <Button
+              key={`extra-action-${idx}`}
+              action="create"
+              text={act.text}
+              onClick={act.onClick}
+              variant={act.variant || 'secondary'}
+            />
+          ))}
           {onAddSecondary && (
             <Button
               action="create"
