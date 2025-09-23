@@ -13,6 +13,8 @@ interface LayoutProps {
   // Optional secondary action button (e.g., Add Task)
   onAddSecondary?: () => void;
   addSecondaryText?: string;
+  // Optional list of extra header action buttons (rendered before the primary add button)
+  extraActions?: Array<{ text: string; onClick: () => void; variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'outline' | 'ghost' }>; 
   showFilters?: boolean;
   filterOptions?: any[];
   onFilterChange?: (filters: any) => void;
@@ -27,6 +29,7 @@ const Layout: React.FC<LayoutProps> = ({
   addButtonText,
   onAddSecondary,
   addSecondaryText,
+  extraActions,
   showFilters,
   filterOptions,
   onFilterChange,
@@ -56,6 +59,7 @@ const Layout: React.FC<LayoutProps> = ({
           addButtonText={addButtonText}
           onAddSecondary={onAddSecondary}
           addSecondaryText={addSecondaryText}
+          extraActions={extraActions}
           showFilters={showFilters}
           filterOptions={filterOptions}
           onFilterChange={onFilterChange}
