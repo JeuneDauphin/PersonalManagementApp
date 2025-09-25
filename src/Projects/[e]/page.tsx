@@ -12,6 +12,9 @@ import type { Task } from '../../utils/interfaces/interfaces';
 import type { Project, Contact } from '../../utils/interfaces/interfaces';
 import type { Priority, ProjectStatus } from '../../utils/types/types';
 import { effectiveProjectStatus } from '../../utils/projectUtils';
+import { format as fmt } from 'date-fns';
+import MiniCalendar from '../../Components/UI/Calendar/MiniCalendar';
+import TimePicker from '../../Components/UI/TimePicker';
 
 const ProjectDetailPage: React.FC = () => {
 	const navigate = useNavigate();
@@ -52,6 +55,27 @@ const ProjectDetailPage: React.FC = () => {
 	const [contacts, setContacts] = useState<Contact[]>([]);
 	const [contactsLoading, setContactsLoading] = useState(false);
 	const [contactSearch, setContactSearch] = useState('');
+
+	// Mini calendar / time pickers visibility
+	const [showStartCal, setShowStartCal] = useState(false);
+	const [showEndCal, setShowEndCal] = useState(false);
+	const [showStartTime, setShowStartTime] = useState(false);
+	const [showEndTime, setShowEndTime] = useState(false);
+
+	// Helpers for local ISO strings compatible with datetime-local inputs
+	const toIsoLocal = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+	const withDateFrom = (original: string, newDate: Date) => {
+		const base = new Date(original || Date.now());
+		const merged = new Date(newDate);
+		merged.setHours(base.getHours(), base.getMinutes(), 0, 0);
+		return toIsoLocal(merged);
+	};
+	const withTime = (original: string, timeHHmm: string) => {
+		const [hh, mm] = timeHHmm.split(':').map(Number);
+		const base = new Date(original || Date.now());
+		base.setHours(hh, mm, 0, 0);
+		return toIsoLocal(base);
+	};
 
 	// Load contacts when entering edit mode OR when viewing collaborators in view mode
 	useEffect(() => {
@@ -106,8 +130,8 @@ const ProjectDetailPage: React.FC = () => {
 					description: data.description,
 					status: data.status,
 					priority: data.priority,
-					startDate: new Date(data.startDate).toISOString().slice(0, 10),
-					endDate: data.endDate ? new Date(data.endDate).toISOString().slice(0, 10) : '',
+					startDate: new Date(data.startDate).toISOString().slice(0, 16),
+					endDate: data.endDate ? new Date(data.endDate).toISOString().slice(0, 16) : '',
 					progress: data.progress,
 					tags: data.tags || [],
 					githubLink: data.githubLink || '',
@@ -182,7 +206,19 @@ const ProjectDetailPage: React.FC = () => {
 	};
 
 	const handleInputChange = (field: string, value: any) => {
-		setFormData(prev => ({ ...prev, [field]: value }));
+		setFormData(prev => {
+			let next = { ...prev, [field]: value };
+			// Ensure end is after start; if not, bump end by 1 hour
+			if ((field === 'startDate' || field === 'endDate') && next.startDate && next.endDate) {
+				const s = new Date(next.startDate);
+				const e = new Date(next.endDate);
+				if (!isNaN(s.getTime()) && !isNaN(e.getTime()) && e <= s) {
+					const bumped = new Date(s.getTime() + 60 * 60 * 1000);
+					next = { ...next, endDate: toIsoLocal(bumped) };
+				}
+			}
+			return next;
+		});
 	};
 
 	const handleAddTag = () => {
@@ -422,25 +458,109 @@ const ProjectDetailPage: React.FC = () => {
 									</div>
 								</div>
 
-								{/* Dates */}
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<div>
-										<label className="block text-sm text-gray-300 mb-2">Start Date *</label>
-										<input
-											type="date"
-											value={formData.startDate}
-											onChange={(e) => handleInputChange('startDate', e.target.value)}
-											className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
-										/>
+								{/* Dates with mini calendar and time picker */}
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+									{/* Start selector */}
+									<div className="relative">
+										<label className="block text-sm text-gray-300 mb-2">Start *</label>
+										<div className="flex flex-col md:flex-row md:items-center gap-2">
+											<button
+												type="button"
+												onClick={() => { setShowStartCal(v => !v); setShowEndCal(false); }}
+												className={`flex-1 min-w-0 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-left`}
+											>
+												<div className="flex items-center gap-2">
+													<Calendar size={16} />
+													<span className="whitespace-nowrap">{fmt(new Date(formData.startDate), 'PP')}</span>
+												</div>
+											</button>
+											<div className="relative">
+												<button
+													type="button"
+													onClick={() => { setShowStartTime(v => !v); setShowEndTime(false); }}
+													className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white min-w-[96px] text-left"
+													title="Pick time"
+												>
+													{fmt(new Date(formData.startDate), 'HH:mm')}
+												</button>
+												{showStartTime && (
+													<div className="absolute inset-0 z-50 flex items-center justify-center">
+														<div className="bg-gray-800 rounded-md border border-gray-700 w-full">
+															<TimePicker
+																value={fmt(new Date(formData.startDate), 'HH:mm')}
+																onChange={(hhmm) => { handleInputChange('startDate', withTime(formData.startDate, hhmm)); }}
+																onClose={() => setShowStartTime(false)}
+																minuteStep={5}
+																compact
+																itemHeight={24}
+																visibleCount={3}
+																className="w-full justify-between"
+																columnWidthClass="flex-1 min-w-0"
+															/>
+														</div>
+													</div>
+												)}
+											</div>
+										</div>
+										{showStartCal && (
+											<MiniCalendar
+												value={new Date(formData.startDate)}
+												onChange={(d) => handleInputChange('startDate', withDateFrom(formData.startDate, d))}
+												onClose={() => setShowStartCal(false)}
+											/>
+										)}
 									</div>
-									<div>
-										<label className="block text-sm text-gray-300 mb-2">End Date</label>
-										<input
-											type="date"
-											value={formData.endDate}
-											onChange={(e) => handleInputChange('endDate', e.target.value)}
-											className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
-										/>
+
+									{/* End selector */}
+									<div className="relative">
+										<label className="block text-sm text-gray-300 mb-2">End</label>
+										<div className="flex flex-col md:flex-row md:items-center gap-2">
+											<button
+												type="button"
+												onClick={() => { setShowEndCal(v => !v); setShowStartCal(false); }}
+												className={`flex-1 min-w-0 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-left`}
+											>
+												<div className="flex items-center gap-2">
+													<Calendar size={16} />
+													<span className="whitespace-nowrap">{fmt(new Date(formData.endDate || formData.startDate), 'PP')}</span>
+												</div>
+											</button>
+											<div className="relative">
+												<button
+													type="button"
+													onClick={() => { setShowEndTime(v => !v); setShowStartTime(false); }}
+													className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white min-w-[96px] text-left"
+													title="Pick time"
+												>
+													{fmt(new Date(formData.endDate || formData.startDate), 'HH:mm')}
+												</button>
+												{showEndTime && (
+													<div className="absolute inset-0 z-50 flex items-center justify-center">
+														<div className="bg-gray-800 rounded-md border border-gray-700 w-full">
+															<TimePicker
+																value={fmt(new Date(formData.endDate || formData.startDate), 'HH:mm')}
+																onChange={(hhmm) => { handleInputChange('endDate', withTime(formData.endDate || formData.startDate, hhmm)); }}
+																onClose={() => setShowEndTime(false)}
+																minuteStep={5}
+																compact
+																itemHeight={24}
+																visibleCount={3}
+																className="w-full justify-between"
+																columnWidthClass="flex-1 min-w-0"
+															/>
+														</div>
+													</div>
+												)}
+											</div>
+										</div>
+										{showEndCal && (
+											<MiniCalendar
+												value={new Date(formData.endDate || formData.startDate)}
+												onChange={(d) => handleInputChange('endDate', withDateFrom(formData.endDate || formData.startDate, d))}
+												onClose={() => setShowEndCal(false)}
+												minDate={new Date(formData.startDate)}
+											/>
+										)}
 									</div>
 								</div>
 
