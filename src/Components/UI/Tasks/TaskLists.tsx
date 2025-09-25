@@ -1,7 +1,7 @@
 // Task list component displaying tasks in a grid layout
 import React from 'react';
 import { Task } from '../../../utils/interfaces/interfaces';
-import { CheckSquare, Clock, AlertTriangle } from 'lucide-react';
+import { CheckSquare, Clock, AlertTriangle, Square } from 'lucide-react';
 import Button from '../Button';
 
 interface TaskListsProps {
@@ -100,14 +100,30 @@ const TaskLists: React.FC<TaskListsProps> = ({
           {/* Header */}
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
-              {getStatusIcon(task.status)}
+              {/* Toggle complete placed on the left to avoid overlap with hover actions */}
+              <button
+                onClick={(e) => { e.stopPropagation(); onTaskToggle?.(task); }}
+                className={`p-1 -ml-1 rounded transition-colors ${task.status === 'completed' ? 'text-green-400 hover:bg-green-900/30 hover:text-green-300' : 'text-gray-400 hover:bg-gray-700 hover:text-white'}`}
+                title={task.status === 'completed' ? 'Mark as pending' : 'Mark as completed'}
+                aria-label={task.status === 'completed' ? 'Mark as pending' : 'Mark as completed'}
+              >
+                {task.status === 'completed' ? (
+                  <CheckSquare size={16} />
+                ) : (
+                  <Square size={16} />
+                )}
+              </button>
+
+              {/* Keep status indicator for non-completed states to preserve info */}
+              {task.status !== 'completed' && getStatusIcon(task.status)}
+
               <span className={`text-body font-medium ${task.status === 'completed' ? 'line-through text-gray-500' : 'text-white'
                 }`}>
                 {task.title}
               </span>
             </div>
 
-            {/* actions moved to bottom-right */}
+            {/* actions stay bottom-right, see below */}
           </div>
 
           {/* Type badge */}
@@ -156,16 +172,6 @@ const TaskLists: React.FC<TaskListsProps> = ({
 
           {showActions && (
             <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTaskToggle?.(task);
-                }}
-                className="p-1 text-gray-400 hover:text-white rounded transition-colors"
-                title={task.status === 'completed' ? 'Mark as pending' : 'Mark as completed'}
-              >
-                <CheckSquare size={14} />
-              </button>
               {onTaskUnassign && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onTaskUnassign(task._id); }}
