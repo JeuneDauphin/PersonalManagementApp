@@ -304,8 +304,8 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
                       {formData.time || '--:--'}
                     </button>
                     {showTimePicker && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="bg-gray-800 rounded-md border border-gray-700">
+                      <div className="absolute inset-0 z-50 flex items-center justify-center">
+                        <div className="bg-gray-800 rounded-md border border-gray-700 w-full">
                           <TimePicker
                             value={formData.time}
                             onChange={(hhmm) => { handleInputChange('time', hhmm); }}
@@ -314,7 +314,8 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
                             compact
                             itemHeight={24}
                             visibleCount={3}
-                            columnWidthClass="w-10"
+                            className="w-full justify-between"
+                            columnWidthClass="flex-1 min-w-0"
                           />
                         </div>
                       </div>

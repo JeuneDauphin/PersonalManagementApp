@@ -350,8 +350,8 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
                           {fmt(new Date(formData.startDate), 'HH:mm')}
                         </button>
                         {showStartTime && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="bg-gray-800 rounded-md border border-gray-700">
+                          <div className="absolute inset-0 z-50 flex items-center justify-center">
+                            <div className="bg-gray-800 rounded-md border border-gray-700 w-full">
                               <TimePicker
                                 value={fmt(new Date(formData.startDate), 'HH:mm')}
                                 onChange={(hhmm) => { handleInputChange('startDate', withTime(formData.startDate, hhmm)); }}
@@ -360,7 +360,8 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
                                 compact
                                 itemHeight={24}
                                 visibleCount={3}
-                                columnWidthClass="w-10"
+                                className="w-full justify-between"
+                                columnWidthClass="flex-1 min-w-0"
                               />
                             </div>
                           </div>
@@ -408,8 +409,8 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
                           {fmt(new Date(formData.endDate), 'HH:mm')}
                         </button>
                         {showEndTime && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="bg-gray-800 rounded-md border border-gray-700">
+                          <div className="absolute inset-0 z-50 flex items-center justify-center">
+                            <div className="bg-gray-800 rounded-md border border-gray-700 w-full">
                               <TimePicker
                                 value={fmt(new Date(formData.endDate), 'HH:mm')}
                                 onChange={(hhmm) => { handleInputChange('endDate', withTime(formData.endDate, hhmm)); }}
@@ -418,7 +419,8 @@ const EventCardPopup: React.FC<EventCardPopupProps> = ({
                                 compact
                                 itemHeight={24}
                                 visibleCount={3}
-                                columnWidthClass="w-10"
+                                className="w-full justify-between"
+                                columnWidthClass="flex-1 min-w-0"
                               />
                             </div>
                           </div>
