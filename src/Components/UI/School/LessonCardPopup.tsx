@@ -304,7 +304,7 @@ const LessonCardPopup: React.FC<LessonCardPopupProps> = ({
                       {formData.time || '--:--'}
                     </button>
                     {showTimePicker && (
-                      <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="absolute inset-0 z-50 flex items-center justify-center">
                         <div className="bg-gray-800 rounded-md border border-gray-700">
                           <TimePicker
                             value={formData.time}

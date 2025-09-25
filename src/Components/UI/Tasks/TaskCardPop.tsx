@@ -450,7 +450,7 @@ const TaskCardPopup: React.FC<TaskCardPopupProps> = ({
                       {formData.dueDate ? fmt(new Date(formData.dueDate), 'HH:mm') : '--:--'}
                     </button>
                     {showDueTime && formData.dueDate && (
-                      <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="absolute inset-0 z-50 flex items-center justify-center">
                         <div className="bg-gray-800 rounded-md border border-gray-700">
                           <TimePicker
                             value={fmt(new Date(formData.dueDate), 'HH:mm')}
