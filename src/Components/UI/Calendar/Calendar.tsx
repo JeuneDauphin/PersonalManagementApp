@@ -253,6 +253,15 @@ const MonthView: React.FC<{ date: Date; events: (CalendarEvent & { color: string
                 <div
                   className="absolute inset-x-0 bottom-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent"
                   style={{ top: TOP_OFFSET }}
+                  onClick={(e) => {
+                    // If clicking on an event (or its children like task dots), do not trigger date creation
+                    if ((e.target as HTMLElement).closest('[data-event]')) return;
+                    const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                    const relX = e.clientX - rect.left;
+                    const colWidth = rect.width / 7;
+                    const col = Math.max(0, Math.min(6, Math.floor(relX / colWidth)));
+                    onDateClick?.(addDays(weekStart, col));
+                  }}
                 >
                   {/* Inner list keeps natural height (lanes * ROW_HEIGHT) enabling scroll if it exceeds available space */}
                   <div style={{ position: 'relative', paddingBottom: 2 }}>
