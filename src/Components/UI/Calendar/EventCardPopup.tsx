@@ -7,7 +7,7 @@ import Button from '../Button';
 import { apiService } from '../../../utils/api/Api';
 import { format as fmt } from 'date-fns';
 import MiniCalendar from './MiniCalendar';
-import TimePicker from '../TimePicker/TimePicker';
+import TimePicker from '../TimePicker';
 
 interface EventCardPopupProps {
   event?: CalendarEvent | null;

@@ -6,7 +6,7 @@ import { format as fmt } from 'date-fns';
 import { Lesson } from '../../../utils/interfaces/interfaces';
 import { LessonType } from '../../../utils/types/types';
 import Button from '../Button';
-import TimePicker from '../TimePicker/TimePicker';
+import TimePicker from '../TimePicker';
 
 interface LessonCardPopupProps {
   lesson?: Lesson | null;

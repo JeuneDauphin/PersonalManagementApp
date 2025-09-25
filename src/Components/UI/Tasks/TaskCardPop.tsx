@@ -7,7 +7,7 @@ import { Task, Contact, Project, Lesson } from '../../../utils/interfaces/interf
 import { Priority, Status } from '../../../utils/types/types';
 import Button from '../Button';
 import { apiService } from '../../../utils/api/Api';
-import TimePicker from '../TimePicker/TimePicker';
+import TimePicker from '../TimePicker';
 
 interface TaskCardPopupProps {
   task?: Task | null;
