@@ -307,8 +307,7 @@ const CalendarPage: React.FC = () => {
     setDayPopupDate(date);
     setStartInEdit(true);
     setShowEventPopup(true);
-    // Ensure the list focuses on the selected day
-    setCalendarView('timeGridDay');
+    // Keep current calendar view; do not switch to day view on creation click
   };
 
   const handleAddNew = () => {
