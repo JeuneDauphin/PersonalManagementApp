@@ -441,7 +441,7 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                       </button>
                       {showStartTime && formData.startDate && (
                         <div className="absolute inset-0 z-50 flex items-center justify-center">
-                          <div className="bg-gray-800 rounded-md border border-gray-700">
+                          <div className="bg-gray-800 rounded-md border border-gray-700 w-full">
                             <TimePicker
                               value={fmt(new Date(formData.startDate), 'HH:mm')}
                               onChange={(hhmm) => {
@@ -456,7 +456,8 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                               compact
                               itemHeight={24}
                               visibleCount={3}
-                              columnWidthClass="w-10"
+                              className="w-full justify-between"
+                              columnWidthClass="flex-1 min-w-0"
                             />
                           </div>
                         </div>
@@ -503,7 +504,7 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                       </button>
                       {showEndTime && formData.endDate && (
                         <div className="absolute inset-0 z-50 flex items-center justify-center">
-                          <div className="bg-gray-800 rounded-md border border-gray-700">
+                          <div className="bg-gray-800 rounded-md border border-gray-700 w-full">
                             <TimePicker
                               value={fmt(new Date(formData.endDate), 'HH:mm')}
                               onChange={(hhmm) => {
@@ -518,7 +519,8 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                               compact
                               itemHeight={24}
                               visibleCount={3}
-                              columnWidthClass="w-10"
+                              className="w-full justify-between"
+                              columnWidthClass="flex-1 min-w-0"
                             />
                           </div>
                         </div>
