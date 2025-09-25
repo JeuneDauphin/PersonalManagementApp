@@ -96,6 +96,30 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   return [storedValue, setValue] as const;
 }
 
+// Click outside hook (mouse + touch)
+// Usage: const ref = useRef(null); useOutsideClick(ref, () => setOpen(false));
+export function useOutsideClick<T extends HTMLElement>(
+  ref: React.RefObject<T | null>,
+  handler?: () => void
+) {
+  useEffect(() => {
+    if (!handler) return;
+    const onPointer = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node | null;
+      const el = ref.current;
+      if (!el || !target) return;
+      if (!el.contains(target)) handler();
+    };
+    // Use both for desktop and mobile taps
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('touchstart', onPointer, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('touchstart', onPointer);
+    };
+  }, [ref, handler]);
+}
+
 // Hook for filtering and sorting
 export function useFilter<T>(
   data: T[],

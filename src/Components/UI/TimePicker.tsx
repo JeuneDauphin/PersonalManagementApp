@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useOutsideClick } from '../../utils/hooks/hooks';
 
 interface TimePickerProps {
   value: string; // format: HH:mm (24h)
@@ -30,17 +31,7 @@ const buildMinutes = (step: number) => {
   return list;
 };
 
-const useOutsideClick = <T extends HTMLElement>(ref: { current: T | null }, handler?: () => void) => {
-  useEffect(() => {
-    if (!handler) return;
-    const onDocClick = (e: MouseEvent) => {
-      if (!ref.current) return;
-      if (!ref.current.contains(e.target as Node)) handler();
-    };
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, [ref, handler]);
-};
+// useOutsideClick moved to shared hooks
 
 const WheelColumn: React.FC<{
   values: number[];
