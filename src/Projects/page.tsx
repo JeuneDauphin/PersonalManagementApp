@@ -8,6 +8,7 @@ import { Project } from '../utils/interfaces/interfaces';
 import { useAdvancedFilter } from '../utils/hooks/hooks';
 import { apiService } from '../utils/api/Api';
 import { useNavigate } from 'react-router-dom';
+import { effectiveProjectStatus } from '../utils/projectUtils';
 
 const ProjectsPage: React.FC = () => {
   const { data: projects, loading, refresh } = useProjects();
@@ -36,7 +37,7 @@ const ProjectsPage: React.FC = () => {
 
         switch (filterKey) {
           case 'status':
-            if (!filterValues.includes(project.status)) return false;
+            if (!filterValues.includes(effectiveProjectStatus(project.status as any, project.progress))) return false;
             break;
           case 'priority':
             if (!filterValues.includes(project.priority)) return false;
@@ -59,11 +60,11 @@ const ProjectsPage: React.FC = () => {
       key: 'status',
       label: 'Status',
       values: [
-        { value: 'planning', label: 'Planning', count: (projects || []).filter(p => p.status === 'planning').length },
-        { value: 'active', label: 'Active', count: (projects || []).filter(p => p.status === 'active').length },
-        { value: 'on-hold', label: 'On Hold', count: (projects || []).filter(p => p.status === 'on-hold').length },
-        { value: 'completed', label: 'Completed', count: (projects || []).filter(p => p.status === 'completed').length },
-        { value: 'cancelled', label: 'Cancelled', count: (projects || []).filter(p => p.status === 'cancelled').length },
+        { value: 'planning', label: 'Planning', count: (projects || []).filter(p => effectiveProjectStatus(p.status as any, p.progress) === 'planning').length },
+        { value: 'active', label: 'Active', count: (projects || []).filter(p => effectiveProjectStatus(p.status as any, p.progress) === 'active').length },
+        { value: 'on-hold', label: 'On Hold', count: (projects || []).filter(p => effectiveProjectStatus(p.status as any, p.progress) === 'on-hold').length },
+        { value: 'completed', label: 'Completed', count: (projects || []).filter(p => effectiveProjectStatus(p.status as any, p.progress) === 'completed').length },
+        { value: 'cancelled', label: 'Cancelled', count: (projects || []).filter(p => effectiveProjectStatus(p.status as any, p.progress) === 'cancelled').length },
       ],
     },
     {

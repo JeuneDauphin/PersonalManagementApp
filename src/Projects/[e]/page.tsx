@@ -11,6 +11,7 @@ import TaskLists from '../../Components/UI/Tasks/TaskLists';
 import type { Task } from '../../utils/interfaces/interfaces';
 import type { Project, Contact } from '../../utils/interfaces/interfaces';
 import type { Priority, ProjectStatus } from '../../utils/types/types';
+import { effectiveProjectStatus } from '../../utils/projectUtils';
 
 const ProjectDetailPage: React.FC = () => {
 	const navigate = useNavigate();
@@ -329,9 +330,14 @@ const ProjectDetailPage: React.FC = () => {
 						<h1 className="text-2xl font-semibold text-white">{project?.name || 'Project'}</h1>
 						{project && (
 							<div className="flex items-center gap-3 mt-1">
-								<span className={`px-3 py-1 rounded-full text-small font-medium ${getStatusColor(project.status)} bg-gray-700`}>
-									{project.status.replace('-', ' ').toUpperCase()}
-								</span>
+								{(() => {
+									const uiStatus = effectiveProjectStatus(project.status as ProjectStatus, project.progress);
+									return (
+										<span className={`px-3 py-1 rounded-full text-small font-medium ${getStatusColor(uiStatus)} bg-gray-700`}>
+											{uiStatus.replace('-', ' ').toUpperCase()}
+										</span>
+									);
+								})()}
 								<span className={`px-3 py-1 rounded-full text-small font-medium ${getPriorityColor(project.priority)}`}>
 									{project.priority.toUpperCase()}
 								</span>
@@ -580,7 +586,18 @@ const ProjectDetailPage: React.FC = () => {
 											<div className="text-xl font-bold text-white">{project.progress}%</div>
 										</div>
 										<div className="w-full bg-gray-700 rounded-full h-2">
-											<div className="h-2 rounded-full bg-blue-500 transition-all duration-300" style={{ width: `${project.progress}%` }} />
+											{(() => {
+												const uiStatus = effectiveProjectStatus(project.status as ProjectStatus, project.progress);
+												const barColor =
+													uiStatus === 'planning' ? 'bg-gray-500' :
+													uiStatus === 'active' ? 'bg-green-500' :
+													uiStatus === 'on-hold' ? 'bg-yellow-500' :
+													uiStatus === 'completed' ? 'bg-blue-500' :
+													uiStatus === 'cancelled' ? 'bg-red-500' : 'bg-gray-500';
+												return (
+													<div className={`h-2 rounded-full transition-all duration-300 ${barColor}`} style={{ width: `${project.progress}%` }} />
+												);
+											})()}
 										</div>
 									</div>
 								)}

@@ -117,7 +117,7 @@ const TaskLists: React.FC<TaskListsProps> = ({
               {/* Keep status indicator for non-completed states to preserve info */}
               {task.status !== 'completed' && getStatusIcon(task.status)}
 
-              <span className={`text-body font-medium ${task.status === 'completed' ? 'line-through text-gray-500' : 'text-white'
+              <span className={`text-body font-medium ${task.status === 'completed' ? 'text-gray-500' : 'text-white'
                 }`}>
                 {task.title}
               </span>

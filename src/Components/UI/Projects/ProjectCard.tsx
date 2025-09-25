@@ -5,6 +5,7 @@ import { Calendar, Users, GitBranch, Link, Clock, CheckCircle, Pause, Play, Aler
 import Button from '../Button';
 import { apiService } from '../../../utils/api/Api';
 import TaskCardPopup from '../Tasks/TaskCardPop';
+import { effectiveProjectStatus, isProjectEffectivelyCompleted } from '../../../utils/projectUtils';
 
 interface ProjectCardProps {
   project: Project;
@@ -123,25 +124,27 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     return endDate && status !== 'completed' && status !== 'cancelled' && new Date(endDate) < new Date();
   };
 
+  const uiStatus = effectiveProjectStatus(project.status as any, project.progress);
+
   return (
   <div
       className={`
         bg-gray-800 border-l-4 border-gray-700 rounded-lg p-4
     hover:border-gray-600 transition-colors cursor-pointer group relative
         ${getPriorityColor(project.priority)}
-        ${project.status === 'completed' ? 'opacity-75' : ''}
-        ${isOverdue(project.endDate, project.status) ? 'border-red-500' : ''}
+        ${isProjectEffectivelyCompleted(project.status as any, project.progress) ? 'opacity-75' : ''}
+        ${isOverdue(project.endDate, uiStatus) ? 'border-red-500' : ''}
       `}
       onClick={() => onClick?.(project)}
     >
       {/* Status indicator */}
-      <div className={`w-full h-1 ${getStatusColor(project.status)} rounded-t mb-3`} />
+      <div className={`w-full h-1 ${getStatusColor(uiStatus)} rounded-t mb-3`} />
 
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
-          {getStatusIcon(project.status)}
-          <span className={`text-body font-medium ${project.status === 'completed' ? 'line-through text-gray-500' : 'text-white'}`}>
+          {getStatusIcon(uiStatus)}
+          <span className="text-lg md:text-xl font-semibold text-white">
             {project.name}
           </span>
         </div>
@@ -172,7 +175,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         </div>
         <div className="w-full bg-gray-700 rounded-full h-2">
           <div
-            className={`h-2 rounded-full transition-all duration-300 ${getStatusColor(project.status)}`}
+            className={`h-2 rounded-full transition-all duration-300 ${getStatusColor(uiStatus)}`}
             style={{ width: `${project.progress}%` }}
           />
         </div>
@@ -242,10 +245,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <span>{formatDate(project.startDate)}</span>
           </div>
           {project.endDate && (
-            <div className={`flex items-center gap-1 ${isOverdue(project.endDate, project.status) ? 'text-red-400' : ''}`}>
+            <div className={`flex items-center gap-1 ${isOverdue(project.endDate, uiStatus) ? 'text-red-400' : ''}`}>
               <span>→</span>
               <span>{formatDate(project.endDate)}</span>
-              {isOverdue(project.endDate, project.status) && <span>(Overdue)</span>}
+              {isOverdue(project.endDate, uiStatus) && <span>(Overdue)</span>}
             </div>
           )}
         </div>

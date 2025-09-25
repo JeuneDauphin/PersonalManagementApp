@@ -5,6 +5,7 @@ import MiniCalendar from '../Calendar/MiniCalendar';
 import { format as fmt } from 'date-fns';
 import { Project, Contact, Task } from '../../../utils/interfaces/interfaces';
 import { Priority, ProjectStatus } from '../../../utils/types/types';
+import { effectiveProjectStatus } from '../../../utils/projectUtils';
 import Button from '../Button';
 import { apiService } from '../../../utils/api/Api';
 import TaskCardPopup from '../Tasks/TaskCardPop';
@@ -730,9 +731,14 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
                 <div>
                   <h1 className="text-2xl font-bold text-white mb-2">{project?.name}</h1>
                   <div className="flex items-center gap-4">
-                    <span className={`px-3 py-1 rounded-full text-small font-medium ${getStatusColor(project?.status || 'planning')} bg-gray-700`}>
-                      {project?.status?.replace('-', ' ').toUpperCase()}
-                    </span>
+                    {(() => {
+                      const uiStatus = effectiveProjectStatus((project?.status || 'planning') as ProjectStatus, project?.progress || 0);
+                      return (
+                        <span className={`px-3 py-1 rounded-full text-small font-medium ${getStatusColor(uiStatus)} bg-gray-700`}>
+                          {uiStatus.replace('-', ' ').toUpperCase()}
+                        </span>
+                      );
+                    })()}
                     <span className={`px-3 py-1 rounded-full text-small font-medium ${getPriorityColor(project?.priority || 'medium')}`}>
                       {project?.priority?.toUpperCase()}
                     </span>
@@ -746,10 +752,18 @@ const ProjectCardPopup: React.FC<ProjectCardPopupProps> = ({
 
               {/* Progress Bar */}
               <div className="w-full bg-gray-700 rounded-full h-2">
-                <div
-                  className="h-2 rounded-full bg-blue-500 transition-all duration-300"
-                  style={{ width: `${project?.progress || 0}%` }}
-                />
+                {(() => {
+                  const uiStatus = effectiveProjectStatus((project?.status || 'planning') as ProjectStatus, project?.progress || 0);
+                  const barColor =
+                    uiStatus === 'planning' ? 'bg-gray-500' :
+                    uiStatus === 'active' ? 'bg-green-500' :
+                    uiStatus === 'on-hold' ? 'bg-yellow-500' :
+                    uiStatus === 'completed' ? 'bg-blue-500' :
+                    uiStatus === 'cancelled' ? 'bg-red-500' : 'bg-gray-500';
+                  return (
+                    <div className={`h-2 rounded-full transition-all duration-300 ${barColor}`} style={{ width: `${project?.progress || 0}%` }} />
+                  );
+                })()}
               </div>
 
               {/* Description */}
