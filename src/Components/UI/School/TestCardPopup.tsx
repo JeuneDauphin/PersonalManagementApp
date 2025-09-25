@@ -4,7 +4,7 @@ import { X, Calendar, Clock, MapPin, Trophy, FileText, Star } from 'lucide-react
 import { Test } from '../../../utils/interfaces/interfaces';
 import { TestType } from '../../../utils/types/types';
 import Button from '../Button';
-import TimePicker from '../TimePicker/TimePicker';
+import TimePicker from '../TimePicker';
 
 interface TestCardPopupProps {
   test?: Test | null;

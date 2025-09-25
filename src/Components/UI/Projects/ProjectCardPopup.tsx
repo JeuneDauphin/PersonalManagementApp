@@ -8,7 +8,7 @@ import { Priority, ProjectStatus } from '../../../utils/types/types';
 import Button from '../Button';
 import { apiService } from '../../../utils/api/Api';
 import TaskCardPopup from '../Tasks/TaskCardPop';
-import TimePicker from '../TimePicker/TimePicker';
+import TimePicker from '../TimePicker';
 
 interface ProjectCardPopupProps {
   project?: Project | null;
