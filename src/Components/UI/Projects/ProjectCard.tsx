@@ -145,6 +145,21 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             {project.name}
           </span>
         </div>
+        {/* Top-right badges: collaborators and tasks moved here to avoid overlap with hover actions */}
+        <div className="flex items-center gap-2 text-xs text-gray-300">
+          {project.collaborators && project.collaborators.length > 0 && (
+            <div className="flex items-center gap-1 bg-gray-700/60 px-2 py-0.5 rounded-full">
+              <Users size={12} />
+              <span className="leading-none">{project.collaborators.length}</span>
+            </div>
+          )}
+          {project.tasks && project.tasks.length > 0 && (
+            <div className="flex items-center gap-1 bg-gray-700/60 px-2 py-0.5 rounded-full">
+              <CheckCircle size={12} />
+              <span className="leading-none">{project.tasks.length}</span>
+            </div>
+          )}
+        </div>
 
   {/* actions moved to bottom-right */}
       </div>
@@ -234,21 +249,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             </div>
           )}
         </div>
-
-        <div className="flex items-center gap-2 text-small text-gray-400">
-          {project.collaborators && project.collaborators.length > 0 && (
-            <div className="flex items-center gap-1">
-              <Users size={12} />
-              <span>{project.collaborators.length}</span>
-            </div>
-          )}
-          {project.tasks && project.tasks.length > 0 && (
-            <div className="flex items-center gap-1">
-              <CheckCircle size={12} />
-              <span>{project.tasks.length}</span>
-            </div>
-          )}
-        </div>
+        {/* Right side intentionally left empty to prevent overlap with hover action buttons */}
+        <div className="flex-1" />
       </div>
 
       {showActions && (
