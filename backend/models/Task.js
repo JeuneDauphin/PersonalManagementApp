@@ -17,6 +17,7 @@ const taskSchema = new Schema(
     tags: { type: [String], default: [] },
     estimatedHours: { type: Number },
     actualHours: { type: Number },
+    contacts: { type: [String], default: [] },
   },
   { timestamps: true, versionKey: false }
 );

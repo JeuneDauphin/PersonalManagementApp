@@ -103,6 +103,15 @@ class ApiService {
       body: JSON.stringify(task),
     });
   }
+  async setTaskContacts(taskId: string, contacts: string[]): Promise<Task> {
+    return this.request<Task>(`/tasks/${taskId}/contacts`, {
+      method: 'PUT',
+      body: JSON.stringify({ contacts }),
+    });
+  }
+  async getTaskContacts(taskId: string): Promise<{ ids: string[]; contacts: Contact[] }> {
+    return this.request<{ ids: string[]; contacts: Contact[] }>(`/tasks/${taskId}/contacts`);
+  }
 
   // Remove association between a task and a project without deleting the task
   async unassignTaskFromProject(taskId: string): Promise<Task> {

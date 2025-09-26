@@ -90,7 +90,7 @@ router.get('/projects/:id', async (req, res) => {
 // TASKS
 router.get('/tasks', async (req, res) => {
   try {
-    const { page = 1, limit = 40, q, status, priority, projectId, project, lessonId, lesson, category, categoryId } = req.query;
+    const { page = 1, limit = 40, q, status, priority, projectId, project, lessonId, lesson, category, categoryId, contactId } = req.query;
     const filter = {};
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
@@ -118,6 +118,7 @@ router.get('/tasks', async (req, res) => {
         { tags: { $in: [q] } },
       ];
     }
+    if (contactId) filter.contacts = contactId;
     const skip = (Number(page) - 1) * Number(limit);
     const [items, total] = await Promise.all([
       Task.find(filter).populate('category').sort({ dueDate: 1 }).skip(skip).limit(Number(limit)),
@@ -138,6 +139,20 @@ router.get('/tasks/:id', async (req, res) => {
     res.json(task);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch task', details: err.message });
+  }
+});
+
+router.get('/tasks/:id/contacts', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
+    const task = await Task.findById(id).select('contacts');
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+    const ids = Array.isArray(task.contacts) ? task.contacts.filter(Boolean) : [];
+    const contacts = ids.length ? await Contact.find({ _id: { $in: ids } }) : [];
+    res.json({ ids, contacts });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch task contacts', details: err.message });
   }
 });
 

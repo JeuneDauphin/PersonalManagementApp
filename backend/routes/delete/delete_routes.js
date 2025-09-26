@@ -18,6 +18,7 @@ router.delete('/contacts/:id', async (req, res) => {
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
     const contact = await Contact.findByIdAndDelete(id);
     if (!contact) return res.status(404).json({ error: 'Contact not found' });
+    await Task.updateMany({ contacts: id }, { $pull: { contacts: id } });
     res.json({ message: 'Contact deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete contact', details: err.message });

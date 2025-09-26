@@ -118,7 +118,7 @@ router.patch('/tasks/:id', async (req, res) => {
     }
 
     // Fetch existing to compare relations
-    const before = await Task.findById(id).select('project lesson');
+    const before = await Task.findById(id).select('project lesson contacts');
     if (!before) return res.status(404).json({ error: 'Task not found' });
 
     const task = await Task.findByIdAndUpdate(id, updates, { new: true, runValidators: true }).populate('category');
@@ -164,7 +164,7 @@ router.put('/tasks/:id', async (req, res) => {
     }
 
     // Fetch existing to compare relations
-    const before = await Task.findById(id).select('project lesson');
+    const before = await Task.findById(id).select('project lesson contacts');
     if (!before) return res.status(404).json({ error: 'Task not found' });
 
     const task = await Task.findByIdAndUpdate(id, updates, { new: true, runValidators: true }).populate('category');
@@ -192,6 +192,26 @@ router.put('/tasks/:id', async (req, res) => {
     res.json(task);
   } catch (err) {
     res.status(400).json({ error: 'Failed to update task', details: err.message });
+  }
+});
+
+// PUT /api/tasks/:id/contacts - replace contacts array for a task
+router.put('/tasks/:id/contacts', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
+    const { contacts } = req.body || {};
+    if (!Array.isArray(contacts)) return res.status(400).json({ error: 'contacts must be an array of contact IDs' });
+    const clean = Array.from(new Set(contacts.map(String))).filter(Boolean);
+    const task = await Task.findByIdAndUpdate(
+      id,
+      { $set: { contacts: clean } },
+      { new: true, runValidators: true }
+    ).populate('category');
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+    res.json(task);
+  } catch (err) {
+    res.status(400).json({ error: 'Failed to update task contacts', details: err.message });
   }
 });
 
