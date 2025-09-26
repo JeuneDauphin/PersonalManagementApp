@@ -8,7 +8,7 @@ import EventCardPopup from '../Components/UI/Calendar/EventCardPopup';
 import ProjectCardPopup from '../Components/UI/Projects/ProjectCardPopup';
 import LessonCardPopup from '../Components/UI/School/LessonCardPopup';
 import TaskCardPopup from '../Components/UI/Tasks/TaskCardPop';
-import { useEvents, useProjects, useTasks, useLessons } from '../utils/hooks/hooks';
+import { useEvents, useProjects, useTasks, useLessons, useContacts } from '../utils/hooks/hooks';
 import { CalendarEvent, Task, Project, Lesson } from '../utils/interfaces/interfaces';
 import { apiService } from '../utils/api/Api';
 import Notification from '../Components/UI/Notification';
@@ -27,6 +27,7 @@ const CalendarPage: React.FC = () => {
   const { data: tasks, refresh: refreshTasks } = useTasks();
   const { data: projects, refresh: refreshProjects } = useProjects();
   const { data: lessons, refresh: refreshLessons } = useLessons();
+  const { data: contacts, loading: loadingContacts } = useContacts();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventPopup, setShowEventPopup] = useState(false);
@@ -113,17 +114,34 @@ const CalendarPage: React.FC = () => {
       .filter((t: any) => !((t.projectId || t.project)))
       .filter((t: Task) => !!t.dueDate)
       .map((t: Task): CalendarEvent => {
-      const base = new Date(t.dueDate);
-      if (isTimeGrid) {
-        const start = withDefaultTime(base, 9, 0);
-        const end = oneHourAfter(start);
+        const base = new Date(t.dueDate);
+        if (isTimeGrid) {
+          const start = withDefaultTime(base, 9, 0);
+          const end = oneHourAfter(start);
+          return {
+            _id: `task-${t._id}`,
+            title: `Task: ${t.title}`,
+            description: t.description,
+            startDate: start,
+            endDate: end,
+            isAllDay: false,
+            type: 'deadline',
+            location: undefined,
+            attendees: undefined,
+            reminders: [],
+            createdAt: new Date(t.createdAt),
+            updatedAt: new Date(t.updatedAt),
+            ...({ color: '#ef4444' } as any),
+          } as any;
+        }
+        // Month view: keep all-day on the due date
         return {
           _id: `task-${t._id}`,
           title: `Task: ${t.title}`,
           description: t.description,
-          startDate: start,
-          endDate: end,
-          isAllDay: false,
+          startDate: base,
+          endDate: base,
+          isAllDay: true,
           type: 'deadline',
           location: undefined,
           attendees: undefined,
@@ -132,24 +150,7 @@ const CalendarPage: React.FC = () => {
           updatedAt: new Date(t.updatedAt),
           ...({ color: '#ef4444' } as any),
         } as any;
-      }
-      // Month view: keep all-day on the due date
-      return {
-        _id: `task-${t._id}`,
-        title: `Task: ${t.title}`,
-        description: t.description,
-        startDate: base,
-        endDate: base,
-        isAllDay: true,
-        type: 'deadline',
-        location: undefined,
-        attendees: undefined,
-        reminders: [],
-        createdAt: new Date(t.createdAt),
-        updatedAt: new Date(t.updatedAt),
-        ...({ color: '#ef4444' } as any),
-      } as any;
-    });
+      });
   }, [tasks, isTimeGrid]);
 
   // Convert projects to synthetic events and attach their tasks for display inside the project color button
@@ -366,7 +367,7 @@ const CalendarPage: React.FC = () => {
         } as any);
         await refreshTasks();
       } else if (event._id.startsWith('temp-')) {
-      // Creating new real calendar event
+        // Creating new real calendar event
         const { _id, createdAt, updatedAt, ...eventData } = event;
         await apiService.createEvent(eventData);
         await refresh();
@@ -414,27 +415,29 @@ const CalendarPage: React.FC = () => {
       onAddSecondary={handleAddProjectFromCalendar}
       addSecondaryText="Add Project"
       extraActions={[
-        { text: 'Add Task', onClick: () => {
-          const base = new Date(selectedDate);
-          if (calendarView === 'dayGridMonth') base.setHours(9, 0, 0, 0);
-          const temp: Task = {
-            _id: `temp-${Date.now()}`,
-            title: '',
-            description: '',
-            priority: 'medium' as any,
-            status: 'pending' as any,
-            type: undefined,
-            dueDate: base,
-            tags: [],
-            estimatedHours: 1,
-            actualHours: 0,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          } as any;
-          setSelectedTask(temp);
-          setTaskStartInEdit(true);
-          setShowTaskPopup(true);
-        }, variant: 'secondary' }
+        {
+          text: 'Add Task', onClick: () => {
+            const base = new Date(selectedDate);
+            if (calendarView === 'dayGridMonth') base.setHours(9, 0, 0, 0);
+            const temp: Task = {
+              _id: `temp-${Date.now()}`,
+              title: '',
+              description: '',
+              priority: 'medium' as any,
+              status: 'pending' as any,
+              type: undefined,
+              dueDate: base,
+              tags: [],
+              estimatedHours: 1,
+              actualHours: 0,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            } as any;
+            setSelectedTask(temp);
+            setTaskStartInEdit(true);
+            setShowTaskPopup(true);
+          }, variant: 'secondary'
+        }
       ]}
     >
       <div className="h-full flex flex-col lg:flex-row gap-4">
@@ -548,6 +551,25 @@ const CalendarPage: React.FC = () => {
             try {
               await Promise.all([refreshTasks(), refreshProjects()]);
             } catch { /* noop */ }
+          }}
+          // New: keep API out of UI by passing data/handlers from page
+          contacts={contacts || []}
+          loadingContacts={loadingContacts}
+          unassignedTasks={(tasks || []).filter((t: any) => !((t as any).projectId || (t as any).project))}
+          loadingUnassignedTasks={false}
+          onAssignTaskToProject={async (taskId: string, projectId: string) => {
+            await apiService.updateTask(taskId, { projectId } as any);
+            // also recompute project progress
+            try { await apiService.recomputeAndSyncProjectProgress(projectId); } catch { /* ignore */ }
+          }}
+          onCreateTask={async (task: any) => {
+            await apiService.createTask(task);
+          }}
+          onUpdateTask={async (taskId: string, data: any) => {
+            await apiService.updateTask(taskId, data);
+          }}
+          onRefreshLists={async () => {
+            await Promise.all([refreshTasks(), refreshProjects()]);
           }}
         />
       )}
