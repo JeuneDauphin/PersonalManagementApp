@@ -1,5 +1,3 @@
-
-// Contact card component displaying contact details in a card format
 import React from 'react';
 import { Contact } from '../../../utils/interfaces/interfaces';
 import { User, Building, Briefcase, School, Users } from 'lucide-react';
@@ -32,7 +30,6 @@ const ContactCard: React.FC<ContactCardProps> = ({
       default: return 'bg-gray-500';
     }
   };
-
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'personal': return <User size={14} className="text-white" />;
@@ -44,8 +41,6 @@ const ContactCard: React.FC<ContactCardProps> = ({
     }
   };
 
-  // Compact card: only avatar, name, type badge.
-
   return (
   <div
       className={`
@@ -55,13 +50,9 @@ const ContactCard: React.FC<ContactCardProps> = ({
       `}
       onClick={() => onClick?.(contact)}
     >
-      {/* Type indicator */}
       <div className={`w-full h-1 ${getTypeColor(contact.type)} rounded-t mb-3`} />
-
-      {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-start gap-3">
-          {/* Avatar placeholder */}
           <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
             <User size={20} className="text-gray-400" />
           </div>
@@ -76,12 +67,7 @@ const ContactCard: React.FC<ContactCardProps> = ({
             </div>
           </div>
         </div>
-
-  {/* actions moved to bottom-right */}
       </div>
-
-      {/* Compact card intentionally omits email, phone, company, position, notes, social links, and metadata */}
-
       {showActions && (
         <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button

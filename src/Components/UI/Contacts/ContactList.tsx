@@ -1,5 +1,3 @@
-
-// Contact list component displaying contacts in a grid layout
 import React from 'react';
 import { Contact } from '../../../utils/interfaces/interfaces';
 import { Users } from 'lucide-react';
@@ -44,7 +42,6 @@ const ContactList: React.FC<ContactListProps> = ({
       </div>
     );
   }
-
   if ((contacts || []).length === 0) {
     return (
       <div className="text-center py-12">
@@ -54,7 +51,6 @@ const ContactList: React.FC<ContactListProps> = ({
       </div>
     );
   }
-
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {(contacts || []).map((contact) => (
