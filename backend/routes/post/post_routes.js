@@ -41,6 +41,10 @@ router.post('/tasks', async (req, res) => {
     if (payload.projectId && !payload.project) payload.project = payload.projectId;
     if (payload.lessonId && !payload.lesson) payload.lesson = payload.lessonId;
 
+    if (Array.isArray(payload.contacts)) {
+      payload.contacts = Array.from(new Set(payload.contacts.map(String))).filter(Boolean);
+    }
+
     const task = new Task(payload);
     await task.save();
 
