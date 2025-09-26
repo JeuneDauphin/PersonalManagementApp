@@ -646,6 +646,10 @@ const CalendarPage: React.FC = () => {
             } catch (e) { console.error(e); }
           } : undefined}
           startInEdit={taskStartInEdit}
+          contacts={contacts}
+          loadingContacts={loadingContacts}
+          projects={projects}
+          lessons={lessons}
         />
       )}
     </Layout>

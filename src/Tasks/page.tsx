@@ -3,13 +3,16 @@ import React, { useState } from 'react';
 import Layout from '../Components/Layout/Layout';
 import TaskLists from '../Components/UI/Tasks/TaskLists';
 import TaskCardPopup from '../Components/UI/Tasks/TaskCardPop';
-import { useTasks } from '../utils/hooks/hooks';
+import { useTasks, useProjects, useLessons, useContacts } from '../utils/hooks/hooks';
 import { Task } from '../utils/interfaces/interfaces';
 import { useAdvancedFilter } from '../utils/hooks/hooks';
 import { apiService } from '../utils/api/Api';
 
 const TasksPage: React.FC = () => {
   const { data: tasks, loading, refresh } = useTasks();
+  const { data: projects } = useProjects();
+  const { data: lessons } = useLessons();
+  const { data: contacts, loading: loadingContacts } = useContacts();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskPopup, setShowTaskPopup] = useState(false);
   const [startInEdit, setStartInEdit] = useState(false);
@@ -96,7 +99,7 @@ const TasksPage: React.FC = () => {
       // recompute linked project progress if applicable
       const projectId = (task as any)?.projectId || (task as any)?.project;
       if (projectId) {
-        try { await apiService.recomputeAndSyncProjectProgress(projectId); } catch {}
+        try { await apiService.recomputeAndSyncProjectProgress(projectId); } catch { }
       }
     } catch (error) {
       console.error('Failed to delete task:', error);
@@ -111,7 +114,7 @@ const TasksPage: React.FC = () => {
       refresh();
       const projectId = (task as any)?.projectId || (task as any)?.project;
       if (projectId) {
-        try { await apiService.recomputeAndSyncProjectProgress(projectId); } catch {}
+        try { await apiService.recomputeAndSyncProjectProgress(projectId); } catch { }
       }
     } catch (error) {
       console.error('Failed to update task status:', error);
@@ -208,6 +211,10 @@ const TasksPage: React.FC = () => {
           onSave={handleTaskSave}
           onDelete={selectedTask ? () => handleTaskDelete(selectedTask._id) : undefined}
           startInEdit={startInEdit}
+          contacts={contacts}
+          loadingContacts={loadingContacts}
+          projects={projects}
+          lessons={lessons}
         />
       )}
     </Layout>
