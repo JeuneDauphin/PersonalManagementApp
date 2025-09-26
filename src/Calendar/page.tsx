@@ -4,7 +4,7 @@ import Layout from '../Components/Layout/Layout';
 import Calendar from '../Components/UI/Calendar/Calendar';
 import EventLists from '../Components/UI/Calendar/EventLists';
 import DateShortcut from '../Components/UI/Calendar/DateShortcut';
-import EventCardPopup from '../Components/UI/Calendar/EventPopup';
+import EventCardPopup from '../Components/UI/Calendar/EventCardPopup';
 import ProjectCardPopup from '../Components/UI/Projects/ProjectCardPopup';
 import LessonCardPopup from '../Components/UI/School/LessonCardPopup';
 import TaskCardPopup from '../Components/UI/Tasks/TaskCardPop';

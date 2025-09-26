@@ -4,17 +4,15 @@ import Button from '../../Button';
 import { CalendarEvent, Contact } from '../../../../utils/interfaces/interfaces';
 import { EventType } from '../../../../utils/types/types';
 import { apiService } from '../../../../utils/api/Api';
-// Local helper (was in utils.ts)
 const toIsoLocal = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-import TitleSection from './sections/TitleSection';
-import DescriptionSection from './sections/DescriptionSection';
-import AllDayToggle from './sections/AllDayToggle';
-import DateTimeSection from './sections/DateTimeSection';
-import TypeLocationSection from './sections/TypeLocationSection';
-import AttendeesSection from './sections/AttendeesSection';
-import ViewMode from './sections/ViewMode';
+import TitleSection from './categories/TitleSection';
+import DescriptionSection from './categories/DescriptionSection';
+import AllDayToggle from './categories/AllDayToggle';
+import DateTimeSection from './categories/DateTimeSection';
+import TypeLocationSection from './categories/TypeLocationSection';
+import AttendeesSection from './categories/AttendeesSection';
+import ViewMode from './categories/ViewMode';
 
-// Public Props kept compatible with current usage
 export interface EventPopupProps {
   event?: CalendarEvent | null;
   isOpen: boolean;
@@ -24,7 +22,6 @@ export interface EventPopupProps {
   dayDate?: Date;
   startInEdit?: boolean;
 }
-
 
 type FormData = {
   title: string;
@@ -70,7 +67,7 @@ const validate = (data: FormData) => {
 
 // (Sections are imported from ./sections/*)
 
-const EventPopup: React.FC<EventPopupProps> = ({ event, isOpen, onClose, onSave, onDelete, dayDate, startInEdit }) => {
+const Main: React.FC<EventPopupProps> = ({ event, isOpen, onClose, onSave, onDelete, dayDate, startInEdit }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<FormData>(defaultForm());
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -260,4 +257,4 @@ const EventPopup: React.FC<EventPopupProps> = ({ event, isOpen, onClose, onSave,
   );
 };
 
-export default EventPopup;
+export default Main;
