@@ -1,31 +1,26 @@
 #!/bin/bash
 
 # Personal Management App - Development Script
-# This script starts both the backend server and frontend development server
+# This script starts the frontend development server
 
-echo "🚀 Starting Personal Management App Development Environment..."
+echo "🚀 Starting Personal Management App..."
 echo "📁 Working directory: $(pwd)"
 echo ""
 
-# Check if node_modules exist in root
+# Check if node_modules exist
 if [ ! -d "node_modules" ]; then
-    echo "📦 Installing root dependencies..."
+    echo "📦 Installing dependencies..."
     npm install
     echo ""
 fi
 
-# Check if node_modules exist in backend
-if [ ! -d "backend/node_modules" ]; then
-    echo "📦 Installing backend dependencies..."
-    cd backend && npm install && cd ..
-    echo ""
-fi
-
-echo "🎯 Starting development servers..."
-echo "   - Frontend: http://localhost:5173"
-echo "   - Backend:  http://localhost:3000"
+echo "🎯 Starting development server..."
+echo "   - App: http://localhost:5173"
 echo ""
-echo "Press Ctrl+C to stop both servers"
+echo "ℹ️  This app uses localStorage for data persistence."
+echo "   All your data is stored locally in your browser."
+echo ""
+echo "Press Ctrl+C to stop the server"
 echo ""
 
 # Run the development command
