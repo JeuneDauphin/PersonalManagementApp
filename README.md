@@ -2,6 +2,8 @@
 
 A comprehensive, standalone personal management application built with React, TypeScript, and Tailwind CSS. Perfect for managing tasks, projects, contacts, calendar events, and school-related activities.
 
+**🌐 [Live Demo](https://jeunedauphin.github.io/PersonalManagementApp)** *(or run locally)*
+
 ## ✨ Features
 
 - **📋 Task Management** - Create, organize, and track tasks with priorities and due dates
@@ -21,8 +23,11 @@ A comprehensive, standalone personal management application built with React, Ty
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
-cd personal-management-app
+git clone https://github.com/JeuneDauphin/PersonalManagementApp.git
+cd PersonalManagementApp
+
+# Switch to standalone branch
+git checkout standalone
 
 # Install dependencies
 npm install
@@ -32,13 +37,6 @@ npm run dev
 ```
 
 The app will be available at `http://localhost:5173`
-
-### Alternative: Using the Dev Script
-
-```bash
-chmod +x Dev.sh
-./Dev.sh
-```
 
 ## 📦 Tech Stack
 
@@ -54,6 +52,7 @@ chmod +x Dev.sh
 
 This app uses **localStorage** for data persistence. All your data is stored locally in your browser:
 - No backend server required
+- No configuration needed
 - Data persists between sessions
 - Demo data is automatically seeded on first run
 - Easy to reset or clear data
